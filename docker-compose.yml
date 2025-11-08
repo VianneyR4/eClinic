@@ -1,0 +1,117 @@
+# version: '3.8'
+
+services:
+  # Backend - Laravel API (Apache)
+  backend-app:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: eclinic-backend
+    container_name: eclinic-backend-app
+    restart: unless-stopped
+    working_dir: /var/www/html
+    ports:
+      - "8000:80"
+    volumes:
+      - ./backend:/var/www/html
+      - ./backend/docker/php/local.ini:/usr/local/etc/php/conf.d/local.ini
+    networks:
+      - eclinic-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_DATABASE=eclinic
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=postgres
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+
+  # Frontend - Next.js
+  frontend:
+    build:
+      context: ./Frontend
+      dockerfile: Dockerfile
+    container_name: eclinic-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./Frontend:/app
+      - /app/node_modules
+      - /app/.next
+    networks:
+      - eclinic-network
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
+      - NEXT_PUBLIC_COUCHDB_URL=http://couchdb:5984
+      - NEXT_PUBLIC_COUCHDB_DB_NAME=eclinic
+      - NODE_ENV=development
+    depends_on:
+      - backend-app
+      - couchdb
+
+  # Database - PostgreSQL
+  postgres:
+    image: postgres:16-alpine
+    container_name: eclinic-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: eclinic
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - eclinic-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d eclinic"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Cache - Redis
+  redis:
+    image: redis:7-alpine
+    container_name: eclinic-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - eclinic-network
+
+  # CouchDB for offline sync
+  couchdb:
+    image: couchdb:3.3
+    container_name: eclinic-couchdb
+    restart: unless-stopped
+    ports:
+      - "5984:5984"
+    environment:
+      - COUCHDB_USER=admin
+      - COUCHDB_PASSWORD=admin
+    volumes:
+      - couchdb_data:/opt/couchdb/data
+    networks:
+      - eclinic-network
+
+networks:
+  eclinic-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  couchdb_data:
+    driver: local
+

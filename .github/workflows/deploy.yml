@@ -1,0 +1,138 @@
+name: Deploy on main
+
+on:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Login to Docker registry
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and push frontend image
+        run: |
+          docker build -t ${{ secrets.REGISTRY }}/efiche-frontend:latest ./Frontend
+          docker push ${{ secrets.REGISTRY }}/efiche-frontend:latest
+
+      - name: Build and push backend image
+        run: |
+          docker build -t ${{ secrets.REGISTRY }}/efiche-backend:latest ./backend
+          docker push ${{ secrets.REGISTRY }}/efiche-backend:latest
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to server via SSH
+        uses: appleboy/ssh-action@v0.1.8
+        with:
+          host: ${{ secrets.DEPLOY_SERVER }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            cd ${{ secrets.DEPLOY_PATH }}
+            docker-compose pull
+            docker-compose up -d --remove-orphans
+
+      - name: Find merged PRs for HEAD commit
+        id: prs
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const commit = context.sha;
+            const { data: pulls } = await github.request('GET /repos/{owner}/{repo}/commits/{commit_sha}/pulls', {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: commit,
+              headers: { accept: 'application/vnd.github.groot-preview+json' }
+            });
+            return pulls.map(p => ({ number: p.number, body: p.body || '' }));
+
+      - name: Update related GitHub Issue(s) and Project status to Deployed
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.PAT_FOR_API || secrets.GITHUB_TOKEN }}
+          script: |
+            const prs = JSON.parse('${{ steps.prs.outputs.result || '[]' }}');
+            const issueNumbers = [];
+            for (const pr of prs) {
+              const match = (pr.body || '').match(/Related-Issue:\s*#(\d+)/i);
+              if (match) issueNumbers.push(Number(match[1]));
+            }
+            for (const issue_number of issueNumbers) {
+              // Comment and label issue as deployed
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number,
+                body: `Deployment succeeded for commit ${context.sha}. Marking as Deployed.`
+              });
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number,
+                labels: ['deployed']
+              });
+
+              // If using GitHub Projects V2, update the Status field to Deployed via GraphQL
+              const projectId = process.env.PROJECT_ID || '${{ secrets.PROJECT_ID || '' }}';
+              const statusFieldId = process.env.STATUS_FIELD_ID || '${{ secrets.STATUS_FIELD_ID || '' }}';
+              const deployedOptionId = process.env.DEPLOYED_OPTION_ID || '${{ secrets.DEPLOYED_OPTION_ID || '' }}';
+              if (projectId && statusFieldId && deployedOptionId) {
+                // Get the Issue node ID
+                const issue = await github.graphql(`
+                  query($owner:String!, $repo:String!, $number:Int!) {
+                    repository(owner:$owner, name:$repo) {
+                      issue(number:$number) { id }
+                    }
+                  }
+                `, { owner: context.repo.owner, repo: context.repo.repo, number: issue_number });
+                const issueNodeId = issue.repository.issue.id;
+
+                // Find the Project item for this issue
+                const items = await github.graphql(`
+                  query($projectId:ID!, $contentId:ID!) {
+                    node(id:$projectId) {
+                      ... on ProjectV2 {
+                        items(first: 20, query: "") {
+                          nodes { id content { ... on Issue { id } } }
+                        }
+                      }
+                    }
+                  }
+                `, { projectId, contentId: issueNodeId });
+
+                const node = items.node.items.nodes.find(n => n.content && n.content.id === issueNodeId);
+                if (node) {
+                  await github.graphql(`
+                    mutation($projectId:ID!, $itemId:ID!, $fieldId:ID!, $optionId:String!) {
+                      updateProjectV2ItemFieldValue(input:{
+                        projectId:$projectId,
+                        itemId:$itemId,
+                        fieldId:$fieldId,
+                        value:{ singleSelectOptionId:$optionId }
+                      }) { clientMutationId }
+                    }
+                  `, { projectId, itemId: node.id, fieldId: statusFieldId, optionId: deployedOptionId });
+                }
+              }
+            }
+        env:
+          PROJECT_ID: ${{ secrets.PROJECT_ID }}
+          STATUS_FIELD_ID: ${{ secrets.STATUS_FIELD_ID }}
+          DEPLOYED_OPTION_ID: ${{ secrets.DEPLOYED_OPTION_ID }}

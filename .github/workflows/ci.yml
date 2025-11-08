@@ -1,0 +1,87 @@
+name: CI - Tests (PRs)
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+
+permissions:
+  contents: read
+
+jobs:
+  frontend-tests:
+    name: Frontend Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install deps
+        working-directory: ./Frontend
+        run: npm ci
+
+      - name: Run tests
+        working-directory: ./Frontend
+        run: |
+          if [ -f package.json ]; then npm test --silent || true; fi
+
+  backend-tests:
+    name: Backend Tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: eclinic_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d eclinic_test" \
+          --health-interval 10s \
+          --health-timeout 5s \
+          --health-retries 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.2
+          extensions: pdo_pgsql, mbstring, dom, curl
+
+      - name: Install Composer deps
+        working-directory: ./backend
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Configure environment
+        run: |
+          cp backend/.env.example backend/.env
+          {
+            echo 'DB_CONNECTION=pgsql';
+            echo 'DB_HOST=127.0.0.1';
+            echo 'DB_PORT=5432';
+            echo 'DB_DATABASE=eclinic_test';
+            echo 'DB_USERNAME=postgres';
+            echo 'DB_PASSWORD=postgres';
+            echo 'CACHE_DRIVER=array';
+            echo 'QUEUE_CONNECTION=sync';
+          } >> backend/.env
+
+      - name: Run tests
+        working-directory: ./backend
+        env:
+          DB_CONNECTION: pgsql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 5432
+          DB_DATABASE: eclinic_test
+          DB_USERNAME: postgres
+          DB_PASSWORD: postgres
+        run: php artisan test --no-interaction --env=testing

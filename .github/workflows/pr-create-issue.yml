@@ -1,0 +1,74 @@
+name: Create Issue from PR
+
+on:
+  pull_request:
+    types: [opened]
+
+permissions:
+  issues: write
+  pull-requests: write
+  contents: read
+
+jobs:
+  create-issue:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create GitHub Issue for PR and annotate PR
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.PAT_FOR_API || secrets.GITHUB_TOKEN }}
+          script: |
+            const pr = context.payload.pull_request;
+            const title = `[PR ${pr.number}] ${pr.title}`;
+            const body = `Auto-created ticket for PR #${pr.number}\n\nPR: ${pr.html_url}\n\n*Track work and status here.*`;
+            const issue = await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title,
+              body,
+              labels: ['triage']
+            });
+
+            // Comment and update PR body with Related-Issue reference
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr.number,
+              body: `Related-Issue: #${issue.data.number}`
+            });
+
+            const newBody = `${pr.body || ''}\n\nRelated-Issue: #${issue.data.number}`.trim();
+            await github.rest.pulls.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pr.number,
+              body: newBody
+            });
+
+            // Label the PR
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr.number,
+              labels: ['ticket-created']
+            });
+
+            // Optionally add the Issue into a GitHub Project V2 if PROJECT_ID is provided
+            const projectId = process.env.PROJECT_ID || '';
+            if (projectId) {
+              // Get GraphQL node ID for the newly created issue
+              const nodeQuery = await github.graphql(`
+                query($owner:String!, $repo:String!, $number:Int!){
+                  repository(owner:$owner, name:$repo){ issue(number:$number){ id } }
+                }
+              `, { owner: context.repo.owner, repo: context.repo.repo, number: issue.data.number });
+              const issueNodeId = nodeQuery.repository.issue.id;
+
+              await github.graphql(`
+                mutation($projectId:ID!, $contentId:ID!){
+                  addProjectV2ItemById(input:{ projectId:$projectId, contentId:$contentId }){ item { id } }
+                }
+              `, { projectId, contentId: issueNodeId });
+            }
+        env:
+          PROJECT_ID: ${{ secrets.PROJECT_ID }}
