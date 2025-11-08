@@ -19,6 +19,7 @@ jobs:
       - name: Create GitHub Issue for PR and annotate PR (GITHUB_TOKEN)
         if: ${{ github.event.pull_request.head.repo.fork == false }}
         uses: actions/github-script@v7
+        id: create
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
@@ -57,26 +58,19 @@ jobs:
               labels: ['ticket-created']
             });
 
+            core.setOutput('issue_number', issue.data.number);
+
       - name: Add Issue to GitHub Project (requires PAT_FOR_API)
         if: ${{ github.event.pull_request.head.repo.fork == false && env.PROJECT_ID != '' && env.PAT_FOR_API != '' }}
         uses: actions/github-script@v7
         with:
           github-token: ${{ env.PAT_FOR_API }}
           script: |
-            const pr = context.payload.pull_request;
-            // Find the Related-Issue reference from the PR body comment we added in previous step
-            const { data: prData } = await github.rest.pulls.get({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: pr.number,
-            });
-            const body = prData.body || '';
-            const m = body.match(/Related-Issue:\s*#(\d+)/i);
-            if (!m) {
-              core.warning('No Related-Issue reference found on PR body. Skipping project add.');
+            const issueNumber = Number(process.env.INPUT_ISSUE_NUMBER || '${{ steps.create.outputs.issue_number }}');
+            if (!issueNumber) {
+              core.warning('No issue number found from previous step. Skipping project add.');
               return;
             }
-            const issueNumber = Number(m[1]);
 
             // Get node id for the issue
             const nodeQuery = await github.graphql(`
@@ -95,3 +89,4 @@ jobs:
             `, { projectId, contentId: issueNodeId });
         env:
           PROJECT_ID: ${{ env.PROJECT_ID }}
+          INPUT_ISSUE_NUMBER: ${{ steps.create.outputs.issue_number }}
