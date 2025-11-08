@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Profile2User, Edit, Trash } from 'iconsax-react';
 import { useRxDB } from '../providers/RxDBProvider';
 import { formatDate } from '../utils/helpers';
@@ -25,15 +25,7 @@ export default function PatientList({ onEdit, onDelete }: PatientListProps) {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (isInitialized && db) {
-      loadPatients();
-    } else if (!isInitialized) {
-      setLoading(false);
-    }
-  }, [db, isInitialized]);
-
-  const loadPatients = async () => {
+  const loadPatients = useCallback(async () => {
     if (!db) {
       console.error('Database not initialized');
       setLoading(false);
@@ -53,8 +45,8 @@ export default function PatientList({ onEdit, onDelete }: PatientListProps) {
       const subscription = patientsCollection
         .find()
         .sort({ createdAt: 'desc' })
-        .$.subscribe((docs) => {
-          const patientsData = docs.map((doc) => doc.toJSON() as Patient);
+        .$.subscribe((docs: any[]) => {
+          const patientsData = docs.map((doc: any) => doc.toJSON() as Patient);
           setPatients(patientsData);
           setLoading(false);
         });
@@ -66,7 +58,15 @@ export default function PatientList({ onEdit, onDelete }: PatientListProps) {
       console.error('Error loading patients:', error);
       setLoading(false);
     }
-  };
+  }, [db]);
+
+  useEffect(() => {
+    if (isInitialized && db) {
+      loadPatients();
+    } else if (!isInitialized) {
+      setLoading(false);
+    }
+  }, [db, isInitialized, loadPatients]);
 
   if (loading) {
     return (

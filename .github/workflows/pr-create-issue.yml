@@ -53,9 +53,10 @@ jobs:
               labels: ['ticket-created']
             });
 
-            // Optionally add the Issue into a GitHub Project V2 if PROJECT_ID is provided
+            // Optionally add the Issue into a GitHub Project V2 if PROJECT_ID & PAT_FOR_API are provided
             const projectId = process.env.PROJECT_ID || '';
-            if (projectId) {
+            const hasPat = !!process.env.PAT_FOR_API;
+            if (projectId && hasPat) {
               // Get GraphQL node ID for the newly created issue
               const nodeQuery = await github.graphql(`
                 query($owner:String!, $repo:String!, $number:Int!){
@@ -72,3 +73,4 @@ jobs:
             }
         env:
           PROJECT_ID: ${{ secrets.PROJECT_ID }}
+          PAT_FOR_API: ${{ secrets.PAT_FOR_API }}
