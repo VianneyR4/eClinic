@@ -12,11 +12,15 @@ permissions:
 jobs:
   create-issue:
     runs-on: ubuntu-latest
+    env:
+      PROJECT_ID: ${{ secrets.PROJECT_ID }}
+      PAT_FOR_API: ${{ secrets.PAT_FOR_API }}
     steps:
-      - name: Create GitHub Issue for PR and annotate PR
+      - name: Create GitHub Issue for PR and annotate PR (GITHUB_TOKEN)
+        if: ${{ github.event.pull_request.head.repo.fork == false }}
         uses: actions/github-script@v7
         with:
-          github-token: ${{ secrets.PAT_FOR_API || secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const pr = context.payload.pull_request;
             const title = `[PR ${pr.number}] ${pr.title}`;
@@ -53,24 +57,41 @@ jobs:
               labels: ['ticket-created']
             });
 
-            // Optionally add the Issue into a GitHub Project V2 if PROJECT_ID & PAT_FOR_API are provided
-            const projectId = process.env.PROJECT_ID || '';
-            const hasPat = !!process.env.PAT_FOR_API;
-            if (projectId && hasPat) {
-              // Get GraphQL node ID for the newly created issue
-              const nodeQuery = await github.graphql(`
-                query($owner:String!, $repo:String!, $number:Int!){
-                  repository(owner:$owner, name:$repo){ issue(number:$number){ id } }
-                }
-              `, { owner: context.repo.owner, repo: context.repo.repo, number: issue.data.number });
-              const issueNodeId = nodeQuery.repository.issue.id;
-
-              await github.graphql(`
-                mutation($projectId:ID!, $contentId:ID!){
-                  addProjectV2ItemById(input:{ projectId:$projectId, contentId:$contentId }){ item { id } }
-                }
-              `, { projectId, contentId: issueNodeId });
+      - name: Add Issue to GitHub Project (requires PAT_FOR_API)
+        if: ${{ github.event.pull_request.head.repo.fork == false && env.PROJECT_ID != '' && env.PAT_FOR_API != '' }}
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ env.PAT_FOR_API }}
+          script: |
+            const pr = context.payload.pull_request;
+            // Find the Related-Issue reference from the PR body comment we added in previous step
+            const { data: prData } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pr.number,
+            });
+            const body = prData.body || '';
+            const m = body.match(/Related-Issue:\s*#(\d+)/i);
+            if (!m) {
+              core.warning('No Related-Issue reference found on PR body. Skipping project add.');
+              return;
             }
+            const issueNumber = Number(m[1]);
+
+            // Get node id for the issue
+            const nodeQuery = await github.graphql(`
+              query($owner:String!, $repo:String!, $number:Int!){
+                repository(owner:$owner, name:$repo){ issue(number:$number){ id } }
+              }
+            `, { owner: context.repo.owner, repo: context.repo.repo, number: issueNumber });
+            const issueNodeId = nodeQuery.repository.issue.id;
+
+            // Add to Project V2
+            const projectId = process.env.PROJECT_ID;
+            await github.graphql(`
+              mutation($projectId:ID!, $contentId:ID!){
+                addProjectV2ItemById(input:{ projectId:$projectId, contentId:$contentId }){ item { id } }
+              }
+            `, { projectId, contentId: issueNodeId });
         env:
-          PROJECT_ID: ${{ secrets.PROJECT_ID }}
-          PAT_FOR_API: ${{ secrets.PAT_FOR_API }}
+          PROJECT_ID: ${{ env.PROJECT_ID }}

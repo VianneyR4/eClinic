@@ -1,6 +1,29 @@
 import { RxJsonSchema } from 'rxdb';
 
-export const patientSchema: RxJsonSchema = {
+interface PatientDoc {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email?: string;
+  phone?: string;
+  dateOfBirth?: string;
+  address?: {
+    street?: string;
+    city?: string;
+    state?: string;
+    zipCode?: string;
+  };
+  medicalHistory?: Array<{
+    condition?: string;
+    diagnosisDate?: string;
+    notes?: string;
+  }>;
+  createdAt?: string;
+  updatedAt?: string;
+  _rev?: string;
+}
+
+export const patientSchema: RxJsonSchema<PatientDoc> = {
   version: 0,
   primaryKey: 'id',
   type: 'object',
