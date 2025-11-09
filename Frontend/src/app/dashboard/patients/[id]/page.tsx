@@ -23,6 +23,7 @@ import {
   TickCircle,
   DocumentText,
   Health,
+  ArrowLeft,
 } from "iconsax-react";
 
 export default function PatientDetailPage() {
@@ -51,6 +52,15 @@ export default function PatientDetailPage() {
 
   return (
     <div className="w-full max-w-7xl mx-auto space-y-4">
+      {/* Back to Patients Link */}
+      <button
+        onClick={() => router.push("/dashboard/patients")}
+        className="flex items-center gap-2 text-sm text-gray-600 hover:text-primary transition"
+      >
+        <ArrowLeft size={16} />
+        <span>Back to Patients</span>
+      </button>
+
       {/* Main Header Card */}
       <div className="bg-white border border-gray-200 rounded-lg p-4">
         <div className="flex flex-col md:flex-row md:items-stretch gap-4">
