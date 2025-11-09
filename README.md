@@ -9,6 +9,7 @@ It improves patient flow, reduces nurse workload, and provides instant access to
 
 ### Core Features
 - Offline-first patient registration and consultation  
+- **AI-Powered Multilingual Consultation** (Speech-to-Text + Auto-Summarization)
 - Automatic background synchronization when online  
 - Real-time queue management and triage dashboard  
 - Consultation assistant with prefilled patient data  
@@ -168,6 +169,83 @@ docker-compose restart frontend
 
 ---
 
+## AI Consultation Feature
+
+### Overview
+The consultation feature uses **browser-native speech recognition** combined with **local AI summarization** to streamline patient consultations. Doctors can speak naturally in multiple languages, and the system automatically extracts medical information.
+
+### How It Works
+
+#### 1. **Multilingual Speech-to-Text**
+- **Technology**: Web Speech API (browser-native, requires internet)
+- **Languages**: English (US), French (FR), Kinyarwanda (RW)
+- **Process**:
+  - Doctor selects language and clicks "Start"
+  - Speaks naturally about patient symptoms
+  - Transcript appears in real-time with live waveform visualization
+  - Can switch languages mid-consultation
+  - Interim results shown temporarily (yellow badge)
+  - Final text accumulated continuously (never resets)
+
+#### 2. **Local Translation**
+- **Type**: Dictionary-based keyword translation
+- **Purpose**: Translate French/Kinyarwanda medical terms to English before AI analysis
+- **Storage**: Each speech segment stored with original language metadata
+- **Example**: `"j'ai mal à la tête"` → `"I have head pain"`
+
+#### 3. **AI Summarization**
+- **Type**: Rule-based pattern matching (runs locally, no server needed)
+- **Extracts**:
+  - **Symptoms**: Searches for medical keywords (pain, fever, cough, headache, etc.)
+  - **Duration**: Regex pattern matching (`"3 days"`, `"2 weeks"`)
+  - **Diagnosis**: Symptom combination analysis (e.g., fever + chills + headache → malaria)
+  - **Treatment**: Auto-suggests based on symptoms (headache → paracetamol, fever → rest + hydration)
+
+#### 4. **Doctor Review & Edit**
+- All AI-generated fields are **fully editable**
+- Doctor can:
+  - Manually edit transcript
+  - Modify symptoms, diagnosis, treatment
+  - Add additional notes
+  - Click "Regenerate" to re-run AI on edited transcript
+  - Click "Restart" to clear everything (with confirmation)
+
+#### 5. **Report Generation**
+- **Content**: Patient info, vitals, transcript, AI summary, notes
+- **Design**: Professional layout with clinic branding and QR code
+- **Output**: Print-ready PDF via browser's print dialog
+- **Process**: 5-second loader → auto-scroll to report → print/download
+
+### Technical Stack
+```
+Web Speech API → Transcript Segments (with language)
+                        ↓
+                 Translation Dictionary
+                        ↓
+                 AI Summarizer (local)
+                        ↓
+              Editable Summary Fields
+                        ↓
+                 Report Generator → PDF
+```
+
+### Usage Example
+1. Navigate to patient detail → "New appointment" tab
+2. Select language (🇺🇸 English / 🇫🇷 Français / 🇷🇼 Kinyarwanda)
+3. Click "Start" and speak: *"Patient has headache and belly pain for 3 days"*
+4. AI extracts: Symptoms: `headache, belly, pain` | Duration: `3 days` | Diagnosis: `gastritis or migraine`
+5. Review and edit if needed
+6. Click "Generate Report" → Print/Download PDF
+
+### Browser Compatibility
+- ✅ Chrome/Edge (full support)
+- ✅ Safari (full support)  
+- ⚠️ Firefox (limited - Web Speech API not supported)
+
+📖 **Full Documentation**: See [`docs/CONSULTATION_FEATURE.md`](docs/CONSULTATION_FEATURE.md) for detailed technical implementation.
+
+---
+
 ## License
 
 MIT License – see `LICENSE` for details.
@@ -175,4 +253,24 @@ MIT License – see `LICENSE` for details.
 ---
 
 **eClinic**  
-Simplifying healthcare for rural clinics — offline, reliable, and human-centered.
+
+
+
+
+
+
+
+
+
+
+
+<!-- Notes and limitations
+Offline STT reality: The Web Speech API behavior offline varies by browser/platform. If you require guaranteed offline STT, we should embed a WASM engine (e.g., Vosk WASM or Whisper.cpp via WebAssembly). That needs model files shipped locally and is heavier. I can add this if you want.
+Local summarizer: The summarizer is rule-based to meet the no-internet requirement and runs fully in the browser. If you want smarter summaries offline, we can integrate a small on-device model (e.g., WebLLM/WebGPU) but this adds assets and complexity.
+Next steps (optional)
+Guaranteed offline STT: Integrate Vosk WASM and a small language model, add a toggle to switch engines.
+Language support: Set rec.lang (e.g., “en-US”, “fr-FR”, “rw-RW”) or match your clinic languages.
+Persist locally: Save transcript/summary to IndexedDB (RxDB) for later viewing.
+Filter menu content: Define actual filters for History table.
+Report branding: Add clinic logo/header/footer and QR code for record lookup.
+Task status: Implemented live speech-to-text, live local summarization, comment field, and a printable/downloadable report on the New appointment tab. -->

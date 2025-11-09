@@ -1,2 +1,39 @@
 @import '../styles/main.css';
 
+/* Print styles for consultation report */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  
+  #consultation-report,
+  #consultation-report * {
+    visibility: visible;
+  }
+  
+  #consultation-report {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    border: none !important;
+    box-shadow: none !important;
+  }
+  
+  /* Ensure colors print */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+  
+  @page {
+    margin: 1.5cm;
+    size: A4;
+  }
+  
+  /* Hide print button when printing */
+  button {
+    display: none !important;
+  }
+}
