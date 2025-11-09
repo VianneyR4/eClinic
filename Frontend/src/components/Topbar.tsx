@@ -16,6 +16,8 @@ import {
   Menu,
 } from "iconsax-react";
 import SyncIndicator from "./SyncIndicator";
+import SearchDropdown from "./SearchDropdown";
+import { apiService } from "@/services/api";
 
 interface TopbarProps {
   onMenuClick?: () => void;
@@ -24,8 +26,11 @@ interface TopbarProps {
 export default function Topbar({ onMenuClick }: TopbarProps) {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
+  const [showSearchDropdown, setShowSearchDropdown] = useState(false);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const searchContainerRef = useRef<HTMLDivElement>(null);
+  const [user, setUser] = useState<{ name?: string; email?: string } | null>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -41,8 +46,33 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Fetch current user for display
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const res = await apiService.getMe();
+        if (res?.success && res?.data) {
+          setUser({ name: res.data.name, email: res.data.email });
+        }
+      } catch (e) {
+        // ignore; handled by higher-level auth checks
+      }
+    };
+    fetchUser();
+  }, []);
+
+  const getInitials = () => {
+    if (user?.name) {
+      const parts = user.name.trim().split(/\s+/);
+      const initials = parts.slice(0, 2).map(p => p[0]?.toUpperCase()).join('');
+      return initials || 'U';
+    }
+    if (user?.email) return user.email[0]?.toUpperCase() || 'U';
+    return 'U';
+  };
+
   return (
-    <div className="bg-white h-14 border-b border-gray-200 flex items-center justify-between px-2 sm:px-4">
+    <div className="bg-white h-14 border-b border-gray-200 flex items-center justify-between px-2 sm:px-4 relative">
       {/* Mobile Menu Button */}
       {onMenuClick && (
         <button
@@ -54,7 +84,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
       )}
 
       {/* Left Section - Search */}
-      <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+      <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0 relative" ref={searchContainerRef}>
         <div className="relative flex items-center w-full max-w-xs mr-4 bg-white rounded-md shadow-sm border border-gray-100 focus-within:ring-1 focus-within:ring-gray-300 transition-all duration-200">
           {/* Search Icon */}
           <SearchNormal1
@@ -66,8 +96,16 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
           <input
             type="text"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search"
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setShowSearchDropdown(e.target.value.length > 0);
+            }}
+            onFocus={() => {
+              if (searchQuery.length > 0) {
+                setShowSearchDropdown(true);
+              }
+            }}
+            placeholder="Search patients, doctors..."
             className="w-full pl-8 sm:pl-9 pr-12 sm:pr-16 py-2 text-sm text-gray-700 placeholder-gray-400 bg-transparent rounded-xl focus:outline-none"
           />
 
@@ -81,6 +119,16 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
             </button>
           </div>
         </div>
+
+        {/* Search Dropdown */}
+        {showSearchDropdown && searchQuery && (
+          <div className="absolute left-0 top-full mt-2 z-50" style={{ width: '100%', maxWidth: '896px' }}>
+            <SearchDropdown
+              query={searchQuery}
+              onClose={() => setShowSearchDropdown(false)}
+            />
+          </div>
+        )}
       </div>
 
       {/* Right Section - Actions */}
@@ -119,7 +167,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
           >
             <div className="relative">
               <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
-                <span className="text-white font-medium text-xs">JD</span>
+                <span className="text-white font-medium text-xs">{getInitials()}</span>
               </div>
               <span className="absolute bottom-0 right-0 w-2 h-2 bg-green-500 rounded-full border border-white"></span>
             </div>
@@ -133,7 +181,13 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
 
           {/* Dropdown Menu */}
           {showProfileDropdown && (
-            <div className="absolute right-0 mt-1.5 w-40 sm:w-48 bg-white rounded-md shadow-lg border border-gray-200 py-1.5 z-50">
+            <div className="absolute right-0 mt-1.5 w-56 bg-white rounded-md shadow-lg border border-gray-200 py-2 z-50">
+              {(user?.name || user?.email) && (
+                <div className="px-3 py-2 border-b border-gray-100">
+                  <div className="text-sm font-medium text-gray-900 truncate">{user?.name || 'User'}</div>
+                  <div className="text-xs text-gray-500 truncate">{user?.email}</div>
+                </div>
+              )}
               <button className="w-full px-3 py-1.5 text-left hover:bg-gray-100 flex items-center gap-2 transition">
                 <Profile size={16} className="text-gray-600" />
                 <span className="text-xs text-gray-700">Profile</span>
@@ -144,7 +198,16 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
               </button>
               <hr className="my-1 border-gray-200" />
               <button
-                onClick={() => router.push("/login")}
+                onClick={async () => {
+                  try {
+                    await apiService.logout();
+                  } catch (error) {
+                    console.error('Logout error:', error);
+                  } finally {
+                    localStorage.removeItem('token');
+                    router.push('/login');
+                  }
+                }}
                 className="w-full px-3 py-1.5 text-left hover:bg-gray-100 flex items-center gap-2 transition text-red-600"
               >
                 <Logout size={16} />

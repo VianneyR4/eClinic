@@ -56,6 +56,31 @@ if [ ! -z "$DB_PASSWORD" ]; then
     sed -i "s/DB_PASSWORD=.*/DB_PASSWORD=${DB_PASSWORD}/" .env 2>/dev/null || true
 fi
 
+# Configure drivers: use database cache (for JWT blacklist), file sessions, sync queue
+if grep -q "^CACHE_DRIVER=" .env 2>/dev/null; then
+    sed -i "s/^CACHE_DRIVER=.*/CACHE_DRIVER=database/" .env 2>/dev/null || true
+else
+    echo "CACHE_DRIVER=database" >> .env
+fi
+
+if grep -q "^CACHE_STORE=" .env 2>/dev/null; then
+    sed -i "s/^CACHE_STORE=.*/CACHE_STORE=database/" .env 2>/dev/null || true
+else
+    echo "CACHE_STORE=database" >> .env
+fi
+
+if grep -q "^SESSION_DRIVER=" .env 2>/dev/null; then
+    sed -i "s/^SESSION_DRIVER=.*/SESSION_DRIVER=file/" .env 2>/dev/null || true
+else
+    echo "SESSION_DRIVER=file" >> .env
+fi
+
+if grep -q "^QUEUE_CONNECTION=" .env 2>/dev/null; then
+    sed -i "s/^QUEUE_CONNECTION=.*/QUEUE_CONNECTION=sync/" .env 2>/dev/null || true
+else
+    echo "QUEUE_CONNECTION=sync" >> .env
+fi
+
 # Create necessary directories and set proper permissions
 echo "🔐 Setting up directories and permissions..."
 mkdir -p /var/www/html/storage/framework/{sessions,views,cache}
@@ -86,14 +111,35 @@ else
     echo "✅ Application key already set."
 fi
 
+# Ensure database cache table migration exists before migrations
+if [ ! -f database/migrations/*_create_cache_table.php ] && [ -z "$(ls database/migrations/*_create_cache_table.php 2>/dev/null)" ]; then
+    echo "🧱 Publishing cache table migration..."
+    php artisan cache:table --no-interaction || true
+fi
+
 # Run migrations
 echo "🗄️  Running database migrations..."
 php artisan migrate --force
 
-# Clear and cache config (use file cache to avoid database dependency)
+# Run seeders (create admin user)
+echo "🌱 Running database seeders..."
+php artisan db:seed --force || true
+
+# Clear and cache config
 echo "🧹 Optimizing application..."
 php artisan config:clear || true
 php artisan cache:clear --quiet || true
+
+# Ensure JWT is configured
+if [ ! -f config/jwt.php ]; then
+    echo "🔧 Publishing JWT config..."
+    php artisan vendor:publish --provider="PHPOpenSourceSaver\\JWTAuth\\Providers\\LaravelServiceProvider" --force || true
+fi
+
+if ! grep -q "^JWT_SECRET=" .env 2>/dev/null || [ -z "$(grep -E "^JWT_SECRET=" .env | cut -d'=' -f2)" ]; then
+    echo "🔑 Generating JWT secret..."
+    php artisan jwt:secret --force || true
+fi
 
 echo ""
 echo "✅ Backend setup complete!"

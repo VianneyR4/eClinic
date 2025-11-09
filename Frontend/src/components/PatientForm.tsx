@@ -1,32 +1,61 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
-import { useRxDB } from '../providers/RxDBProvider';
-import { generateId } from '../utils/helpers';
+import { useState, FormEvent, useEffect } from 'react';
+import { apiService } from '@/services/api';
 
 interface PatientFormProps {
   patient?: any;
-  onSave?: () => void;
+  onSave?: (patientData?: any) => void;
   onCancel?: () => void;
 }
 
 export default function PatientForm({ patient, onSave, onCancel }: PatientFormProps) {
-  const { db } = useRxDB();
   const [formData, setFormData] = useState({
-    firstName: patient?.firstName || '',
-    lastName: patient?.lastName || '',
+    firstName: patient?.firstName || patient?.first_name || '',
+    lastName: patient?.lastName || patient?.last_name || '',
     email: patient?.email || '',
     phone: patient?.phone || '',
-    dateOfBirth: patient?.dateOfBirth || '',
+    idNumber: patient?.idNumber || patient?.id_number || '',
+    dateOfBirth: patient?.dateOfBirth || patient?.date_of_birth || '',
+    birthday: patient?.birthday || '',
+    bloodGroup: patient?.blood_group || '',
+    gender: patient?.gender || '',
     address: {
-      street: patient?.address?.street || '',
-      city: patient?.address?.city || '',
-      state: patient?.address?.state || '',
-      zipCode: patient?.address?.zipCode || '',
+      street: patient?.address?.street || (typeof patient?.address === 'string' ? '' : patient?.address?.street) || '',
+      city: patient?.address?.city || (typeof patient?.address === 'string' ? '' : patient?.address?.city) || '',
+      state: patient?.address?.state || (typeof patient?.address === 'string' ? '' : patient?.address?.state) || '',
+      zipCode: patient?.address?.zipCode || patient?.address?.zip_code || (typeof patient?.address === 'string' ? '' : patient?.address?.zipCode) || '',
+    },
+    vitalSigns: {
+      bloodPressure: patient?.vital_signs?.blood_pressure || '',
+      heartRate: patient?.vital_signs?.heart_rate || '',
+      spo2: patient?.vital_signs?.spo2 || '',
+      temperature: patient?.vital_signs?.temperature || '',
+      respiratoryRate: patient?.vital_signs?.respiratory_rate || '',
+      weight: patient?.vital_signs?.weight || '',
     },
   });
 
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (patient) {
+      setFormData({
+        firstName: patient.firstName || patient.first_name || '',
+        lastName: patient.lastName || patient.last_name || '',
+        email: patient.email || '',
+        phone: patient.phone || '',
+        idNumber: patient.idNumber || patient.id_number || '',
+        dateOfBirth: patient.dateOfBirth || patient.date_of_birth || '',
+        address: {
+          street: patient.address?.street || '',
+          city: patient.address?.city || '',
+          state: patient.address?.state || '',
+          zipCode: patient.address?.zipCode || patient.address?.zip_code || '',
+        },
+      });
+    }
+  }, [patient]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -34,33 +63,49 @@ export default function PatientForm({ patient, onSave, onCancel }: PatientFormPr
     setLoading(true);
 
     try {
-      if (!db) {
-        // Simulate a save when DB is not initialized
-        await new Promise((res) => setTimeout(res, 300));
-        if (onSave) onSave();
-        return;
-      }
-
-      const patientsCollection = db.patients;
-      if (!patientsCollection) {
-        throw new Error('Patients collection not found');
-      }
-
       const patientData = {
-        id: patient?.id || generateId(),
-        ...formData,
-        updatedAt: new Date().toISOString(),
-        createdAt: patient?.createdAt || new Date().toISOString(),
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+        email: formData.email || undefined,
+        phone: formData.phone || undefined,
+        id_number: formData.idNumber || undefined,
+        date_of_birth: formData.dateOfBirth || undefined,
+        birthday: formData.birthday || undefined,
+        blood_group: formData.bloodGroup || undefined,
+        gender: formData.gender || undefined,
+        address: formData.address.street || formData.address.city ? {
+          street: formData.address.street,
+          city: formData.address.city,
+          state: formData.address.state,
+          zip_code: formData.address.zipCode,
+        } : undefined,
+        vital_signs: (formData.vitalSigns.bloodPressure || formData.vitalSigns.heartRate || formData.vitalSigns.spo2 || formData.vitalSigns.temperature || formData.vitalSigns.respiratoryRate || formData.vitalSigns.weight) ? {
+          blood_pressure: formData.vitalSigns.bloodPressure || undefined,
+          heart_rate: formData.vitalSigns.heartRate ? Number(formData.vitalSigns.heartRate) : undefined,
+          spo2: formData.vitalSigns.spo2 ? Number(formData.vitalSigns.spo2) : undefined,
+          temperature: formData.vitalSigns.temperature ? Number(formData.vitalSigns.temperature) : undefined,
+          respiratory_rate: formData.vitalSigns.respiratoryRate ? Number(formData.vitalSigns.respiratoryRate) : undefined,
+          weight: formData.vitalSigns.weight ? Number(formData.vitalSigns.weight) : undefined,
+        } : undefined,
       };
 
-      await patientsCollection.upsert(patientData);
-
-      if (onSave) {
-        onSave();
+      let response;
+      if (patient?.id) {
+        response = await apiService.updatePatient(patient.id.toString(), patientData);
+      } else {
+        response = await apiService.createPatient(patientData);
       }
-    } catch (error) {
+
+      if (response.success) {
+        if (onSave) {
+          onSave(response.data || response);
+        }
+      } else {
+        alert(response.message || 'Error saving patient. Please try again.');
+      }
+    } catch (error: any) {
       console.error('Error saving patient:', error);
-      alert('Error saving patient. Please try again.');
+      alert(error.response?.data?.message || 'Error saving patient. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -121,6 +166,18 @@ export default function PatientForm({ patient, onSave, onCancel }: PatientFormPr
           type="email"
           value={formData.email}
           onChange={(e) => handleChange('email', e.target.value)}
+          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-primary focus:border-transparent outline-none"
+        />
+      </div>
+
+      <div>
+        <label className="block text-xs font-medium text-gray-700 mb-1.5">
+          ID Number
+        </label>
+        <input
+          type="text"
+          value={formData.idNumber}
+          onChange={(e) => handleChange('idNumber', e.target.value)}
           className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-primary focus:border-transparent outline-none"
         />
       </div>

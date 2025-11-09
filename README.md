@@ -169,7 +169,7 @@ docker-compose restart frontend
 
 ---
 
-## AI Consultation Feature
+## Smart Consultation Feature
 
 ### Overview
 The consultation feature uses **browser-native speech recognition** combined with **local AI summarization** to streamline patient consultations. Doctors can speak naturally in multiple languages, and the system automatically extracts medical information.

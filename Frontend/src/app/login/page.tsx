@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Eye, EyeSlash } from "iconsax-react";
+import { apiService } from "@/services/api";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -11,30 +12,93 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showVerification, setShowVerification] = useState(false);
   const [verificationCode, setVerificationCode] = useState("");
-  const [generatedCode, setGeneratedCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setError(null);
+    setSuccess(null);
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    try {
+      const response = await apiService.login(email, password);
 
-    // Generate a random 6-digit verification code
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
-    setGeneratedCode(code);
-    setShowVerification(true);
-    setIsLoading(false);
+      if (response.success) {
+        // Login successful - store token and redirect
+        if (response.data?.token) {
+          localStorage.setItem("token", response.data.token);
+          router.push("/dashboard");
+        }
+      } else {
+        // Check if email verification is required
+        if (response.requires_verification) {
+          setShowVerification(true);
+          setSuccess("Verification code sent to your email. Please check your inbox.");
+        } else {
+          setError(response.message || "Login failed. Please check your credentials.");
+        }
+      }
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message || "An error occurred during login. Please try again.";
+      setError(errorMessage);
+      
+      // Check if verification is required
+      if (err.response?.data?.requires_verification) {
+        setShowVerification(true);
+        setSuccess("Verification code sent to your email. Please check your inbox.");
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (verificationCode === generatedCode) {
-      // Redirect to dashboard
-      router.push("/dashboard");
-    } else {
-      alert("Invalid verification code. Please try again.");
+    setIsLoading(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const response = await apiService.verifyEmail(email, verificationCode);
+
+      if (response.success) {
+        if (response.data?.token) {
+          localStorage.setItem("token", response.data.token);
+          setSuccess("Email verified successfully! Redirecting...");
+          setTimeout(() => {
+            router.push("/dashboard");
+          }, 1000);
+        }
+      } else {
+        setError(response.message || "Invalid verification code. Please try again.");
+      }
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message || "Invalid verification code. Please try again.";
+      setError(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResendCode = async () => {
+    setIsLoading(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const response = await apiService.resendVerificationCode(email);
+      if (response.success) {
+        setSuccess("Verification code resent to your email.");
+      } else {
+        setError(response.message || "Failed to resend verification code.");
+      }
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message || "Failed to resend verification code.";
+      setError(errorMessage);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -46,6 +110,20 @@ export default function LoginPage() {
             <h1 className="text-2xl font-bold text-primary mb-1">eClinic</h1>
             <p className="text-sm text-gray-600">Sign in to your account</p>
           </div>
+
+          {/* Error Message */}
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+              <p className="text-sm text-red-800">{error}</p>
+            </div>
+          )}
+
+          {/* Success Message */}
+          {success && (
+            <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md">
+              <p className="text-sm text-green-800">{success}</p>
+            </div>
+          )}
 
           {!showVerification ? (
             <form onSubmit={handleLogin} className="space-y-4">
@@ -62,7 +140,8 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-primary focus:border-transparent outline-none transition"
+                  disabled={isLoading}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-primary focus:border-transparent outline-none transition disabled:opacity-50 disabled:cursor-not-allowed"
                   placeholder="Enter your email"
                 />
               </div>
@@ -81,13 +160,15 @@ export default function LoginPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-primary focus:border-transparent outline-none transition pr-9"
+                    disabled={isLoading}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-primary focus:border-transparent outline-none transition pr-9 disabled:opacity-50 disabled:cursor-not-allowed"
                     placeholder="Enter your password"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                    disabled={isLoading}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 disabled:opacity-50"
                   >
                     {showPassword ? (
                       <EyeSlash size={16} />
@@ -117,13 +198,10 @@ export default function LoginPage() {
             <div className="space-y-4">
               <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
                 <p className="text-xs font-medium text-blue-900 mb-1.5">
-                  Verification Code (Dev Mode)
+                  Email Verification Required
                 </p>
-                <p className="text-xl font-bold text-blue-600 text-center">
-                  {generatedCode}
-                </p>
-                <p className="text-xs text-blue-700 mt-1.5 text-center">
-                  This code is displayed for testing purposes
+                <p className="text-sm text-blue-700">
+                  We've sent a verification code to <strong>{email}</strong>. Please check your email and enter the code below.
                 </p>
               </div>
 
@@ -139,20 +217,37 @@ export default function LoginPage() {
                     id="code"
                     type="text"
                     value={verificationCode}
-                    onChange={(e) => setVerificationCode(e.target.value)}
+                    onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                     required
                     maxLength={6}
-                    className="w-full px-3 py-2 text-lg border border-gray-300 rounded-md focus:ring-1 focus:ring-primary focus:border-transparent outline-none transition text-center tracking-widest"
+                    disabled={isLoading}
+                    className="w-full px-3 py-2 text-lg border border-gray-300 rounded-md focus:ring-1 focus:ring-primary focus:border-transparent outline-none transition text-center tracking-widest disabled:opacity-50 disabled:cursor-not-allowed"
                     placeholder="000000"
                   />
                 </div>
 
                 <button
                   type="submit"
-                  className="w-full bg-primary text-white py-2 text-sm rounded-md font-medium hover:bg-opacity-90 transition flex items-center justify-center gap-1.5"
+                  disabled={isLoading || verificationCode.length !== 6}
+                  className="w-full bg-primary text-white py-2 text-sm rounded-md font-medium hover:bg-opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
                 >
-                  Verify Email
-                  <ArrowRight size={16} />
+                  {isLoading ? (
+                    "Verifying..."
+                  ) : (
+                    <>
+                      Verify Email
+                      <ArrowRight size={16} />
+                    </>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleResendCode}
+                  disabled={isLoading}
+                  className="w-full text-primary py-1.5 text-xs hover:underline transition disabled:opacity-50"
+                >
+                  Resend verification code
                 </button>
 
                 <button
@@ -160,9 +255,11 @@ export default function LoginPage() {
                   onClick={() => {
                     setShowVerification(false);
                     setVerificationCode("");
-                    setGeneratedCode("");
+                    setError(null);
+                    setSuccess(null);
                   }}
-                  className="w-full text-gray-600 py-1.5 text-xs hover:text-gray-800 transition"
+                  disabled={isLoading}
+                  className="w-full text-gray-600 py-1.5 text-xs hover:text-gray-800 transition disabled:opacity-50"
                 >
                   Back to login
                 </button>

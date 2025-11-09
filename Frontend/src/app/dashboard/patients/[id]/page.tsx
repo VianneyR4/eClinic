@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   Call,
@@ -25,30 +25,77 @@ import {
   Health,
   ArrowLeft,
 } from "iconsax-react";
+import { apiService } from "@/services/api";
 
 export default function PatientDetailPage() {
   const params = useParams();
   const router = useRouter();
   const patientId = Array.isArray(params?.id) ? params.id[0] : (params?.id as string);
+  const [patientRaw, setPatientRaw] = useState<any>(null);
 
-  const patient = useMemo(
-    () => ({
-      id: patientId || "p1",
-      firstName: "Alice",
-      lastName: "Niyonsaba",
-      address: "Kigali, Rwanda",
-      phone: "+250788000001",
-      lastVisited: "2015-04-30T09:30:00Z",
-      email: "alice@example.com",
-      gender: "Female",
-      birthday: "1993-03-15",
-      bloodGroup: "O+",
-    }),
-    [patientId]
-  );
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await apiService.getPatient(patientId);
+        if (res?.success) setPatientRaw(res.data);
+      } catch {
+        setPatientRaw(null);
+      }
+    };
+    if (patientId) load();
+  }, [patientId]);
+
+  const formatAddress = (addr: any): string => {
+    if (!addr) return "N/A";
+    if (typeof addr === "string") return addr || "N/A";
+    const parts = [addr.street, addr.city, addr.state, addr.zip_code || addr.zipCode].filter(Boolean);
+    return parts.length ? parts.join(", ") : "N/A";
+  };
+
+  const patient = useMemo(() => {
+    const p = patientRaw || {};
+    const first = p.first_name || p.firstName || "";
+    const last = p.last_name || p.lastName || "";
+    return {
+      id: p.id ?? patientId ?? "N/A",
+      firstName: first || "N/A",
+      lastName: last || "N/A",
+      address: formatAddress(p.address),
+      phone: p.phone || "N/A",
+      lastVisited: p.last_visited_at || null,
+      email: p.email || "N/A",
+      gender: p.gender || "N/A",
+      birthday: p.birthday || p.date_of_birth || "N/A",
+      bloodGroup: p.blood_group || "N/A",
+      vitalSigns: p.vital_signs || {},
+    };
+  }, [patientRaw, patientId]);
 
   const [activeTab, setActiveTab] = useState<"history" | "new">("history");
-  const initials = `${patient.firstName?.[0] || ""}${patient.lastName?.[0] || ""}`.toUpperCase();
+  const initials = `${patient.firstName?.[0] || "N"}${patient.lastName?.[0] || "A"}`.toUpperCase();
+
+  // Consultations state
+  const [consultations, setConsultations] = useState<any[]>([]);
+  const [loadingConsults, setLoadingConsults] = useState<boolean>(false);
+  const [detailOpen, setDetailOpen] = useState<boolean>(false);
+  const [detailItem, setDetailItem] = useState<any | null>(null);
+
+  const loadConsultations = async () => {
+      try {
+        setLoadingConsults(true);
+        const res = await apiService.getPatientConsultations(patientId);
+        if (res?.success) {
+          setConsultations(res.data || []);
+        } else {
+          setConsultations([]);
+        }
+      } catch {
+        setConsultations([]);
+      } finally {
+        setLoadingConsults(false);
+      }
+  };
+  useEffect(() => { if (patientId) loadConsultations(); }, [patientId]);
 
   return (
     <div className="w-full max-w-7xl mx-auto space-y-4">
@@ -81,18 +128,18 @@ export default function PatientDetailPage() {
                 </div>
                 <div className="space-y-1">
                   <p className="text-xs text-gray-500">Address</p>
-                  <p className="text-sm font-medium text-gray-900 truncate">{patient.address}</p>
+                  <p className="text-sm font-medium text-gray-900 truncate">{patient.address || "N/A"}</p>
                 </div>
               </div>
 
               <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <div className="flex items-center gap-2 text-sm text-gray-700">
                   <span className="text-gray-500">Phone:</span>
-                  <span className="font-medium">{patient.phone}</span>
+                  <span className="font-medium">{patient.phone || "N/A"}</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm text-gray-700">
                   <span className="text-gray-500">Last visited:</span>
-                  <span className="font-medium">{new Date(patient.lastVisited).toLocaleDateString(undefined, { day: "2-digit", month: "short", year: "numeric" })}</span>
+                  <span className="font-medium">{patient.lastVisited ? new Date(patient.lastVisited).toLocaleDateString(undefined, { day: "2-digit", month: "short", year: "numeric" }) : "N/A"}</span>
                 </div>
               </div>
             </div>
@@ -119,76 +166,83 @@ export default function PatientDetailPage() {
         </div>
       </div>
 
-      {/* Two side by side cards */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* About */}
-        <div className="bg-white border border-gray-200 rounded-lg">
-          <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-200">
-            <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center">
-              <User size={16} className="text-primary" />
+        {/* Two side by side cards */}
+        <div className="flex flex-col lg:flex-row gap-4">
+          {/* About (2/5) */}
+          <div className="bg-white border border-gray-200 rounded-lg lg:w-2/5 w-full">
+            <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-200">
+              <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center">
+                <User size={16} className="text-primary" />
+              </div>
+              <h3 className="text-sm font-semibold text-gray-800">About</h3>
             </div>
-            <div className="w-8 h-8 rounded-md bg-yellow-500/10 flex items-center justify-center">
-              <Star size={16} className="text-yellow-600" />
+
+            <div className="p-4">
+              {/* 2 columns */}
+              <div className="grid pb-2 grid-cols-1 sm:grid-cols-2 gap-4">
+                {[
+                  { label: "Birthday", value: patient.birthday || "N/A", icon: <Calendar size={16} className="text-gray-400" /> },
+                  { label: "Blood Group", value: patient.bloodGroup || "N/A", icon: <HeartCircle size={16} className="text-gray-400" /> },
+                  { label: "Gender", value: patient.gender || "N/A", icon: <User size={16} className="text-gray-400" /> },
+                  { label: "Email", value: patient.email || "N/A", icon: <DocumentDownload size={16} className="text-gray-400" /> },
+                ].map((item) => (
+                  <div key={item.label} className="flex items-center gap-3">
+                    <div className="ml-auto sm:ml-0 order-2 sm:order-1 w-8 h-8 rounded-md bg-gray-50 border border-gray-200 flex items-center justify-center">
+                      {item.icon}
+                    </div>
+                    <div className="order-1 sm:order-2">
+                      <p className="text-xs text-gray-500">{item.label}</p>
+                      <p className="text-sm font-medium text-gray-900">{item.value}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
-            <h3 className="text-sm font-semibold text-gray-800">About</h3>
           </div>
-          <div className="p-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {[
-                { label: "Birthday", value: patient.birthday, icon: <Calendar size={16} className="text-gray-400" /> },
-                { label: "Blood Group", value: patient.bloodGroup, icon: <HeartCircle size={16} className="text-gray-400" /> },
-                { label: "Gender", value: patient.gender, icon: <User size={16} className="text-gray-400" /> },
-                { label: "Email", value: patient.email, icon: <DocumentDownload size={16} className="text-gray-400" /> },
-              ].map((item) => (
-                <div key={item.label} className="flex items-center gap-3">
-                  <div className="ml-auto sm:ml-0 order-2 sm:order-1 w-8 h-8 rounded-md bg-gray-50 border border-gray-200 flex items-center justify-center">
-                    {item.icon}
+
+          {/* Vital Signs (3/5) */}
+          <div className="bg-white border border-gray-200 rounded-lg lg:w-3/5 w-full">
+            <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-200">
+              <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center">
+                <Book size={16} className="text-primary" />
+              </div>
+              <h3 className="text-sm font-semibold text-gray-800">Vital Signs</h3>
+            </div>
+
+            <div className="p-4">
+              {/* 3 columns */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                {(() => {
+                  const vs = patient.vitalSigns || {};
+                  const items = [
+                    { label: "Blood Pressure", value: vs.blood_pressure ? `${vs.blood_pressure}` : "N/A", ok: !!vs.blood_pressure, icon: <Activity size={16} className="text-gray-400" /> },
+                    { label: "Heart Rate", value: vs.heart_rate != null ? `${vs.heart_rate} bpm` : "N/A", ok: vs.heart_rate != null, icon: <Heart size={16} className="text-gray-400" /> },
+                    { label: "SPO2", value: vs.spo2 != null ? `${vs.spo2}%` : "N/A", ok: vs.spo2 != null, icon: <Activity size={16} className="text-gray-400" /> },
+                    { label: "Temperature", value: vs.temperature != null ? `${vs.temperature}°C` : "N/A", ok: vs.temperature != null, icon: <Activity size={16} className="text-gray-400" /> },
+                    { label: "Respiratory rate", value: vs.respiratory_rate != null ? `${vs.respiratory_rate} bpm` : "N/A", ok: vs.respiratory_rate != null, icon: <Activity size={16} className="text-gray-400" /> },
+                    { label: "Weight", value: vs.weight != null ? `${vs.weight} kg` : "N/A", ok: vs.weight != null, icon: <Activity size={16} className="text-gray-400" /> },
+                  ];
+                  return items;
+                })().map((v) => (
+                  <div key={v.label} className="flex items-center gap-3">
+                    <div className="ml-auto sm:ml-0 order-2 sm:order-1 w-8 h-8 rounded-md bg-gray-50 border border-gray-200 flex items-center justify-center">
+                      {v.icon}
+                    </div>
+                    <div className="order-1 sm:order-2 flex-1">
+                      <p className="text-xs text-gray-500">{v.label}</p>
+                      <div className="flex items-center gap-2">
+                        <span className={`w-2.5 h-2.5 rounded-full ${v.ok ? "bg-green-500" : "bg-red-500"}`} />
+                        <p className="text-sm font-medium text-gray-900">{v.value}</p>
+                      </div>
+                    </div>
                   </div>
-                  <div className="order-1 sm:order-2">
-                    <p className="text-xs text-gray-500">{item.label}</p>
-                    <p className="text-sm font-medium text-gray-900">{item.value}</p>
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Vital Signs */}
-        <div className="bg-white border border-gray-200 rounded-lg">
-          <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-200">
-            <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center">
-              <Book size={16} className="text-primary" />
-            </div>
-            <h3 className="text-sm font-semibold text-gray-800">Vital Signs</h3>
-          </div>
-          <div className="p-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {[
-                { label: "Blood Pressure", value: "120/80 mmHg", ok: true, icon: <Activity size={16} className="text-gray-400" /> },
-                { label: "Heart Rate", value: "74 bpm", ok: true, icon: <Heart size={16} className="text-gray-400" /> },
-                { label: "SPO2", value: "98%", ok: true, icon: <Activity size={16} className="text-gray-400" /> },
-                { label: "Temperature", value: "36.8°C", ok: true, icon: <Activity size={16} className="text-gray-400" /> },
-                { label: "Respiratory rate", value: "16 bpm", ok: true, icon: <Activity size={16} className="text-gray-400" /> },
-                { label: "Weight", value: "65 kg", ok: false, icon: <Activity size={16} className="text-gray-400" /> },
-              ].map((v) => (
-                <div key={v.label} className="flex items-center gap-3">
-                  <div className="ml-auto sm:ml-0 order-2 sm:order-1 w-8 h-8 rounded-md bg-gray-50 border border-gray-200 flex items-center justify-center">
-                    {v.icon}
-                  </div>
-                  <div className="order-1 sm:order-2 flex-1">
-                    <p className="text-xs text-gray-500">{v.label}</p>
-                    <div className="flex items-center gap-2">
-                      <span className={`w-2.5 h-2.5 rounded-full ${v.ok ? "bg-green-500" : "bg-red-500"}`} />
-                      <p className="text-sm font-medium text-gray-900">{v.value}</p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
+
 
       {/* Switch Tabs */}
       <div className="bg-white border border-gray-200 rounded-lg">
@@ -210,13 +264,87 @@ export default function PatientDetailPage() {
         </div>
         <div className="h-px bg-gray-200" />
 
-        {activeTab === "history" ? <HistoryTable /> : <NewAppointmentDesign />}
+        {activeTab === "history" ? (
+          <HistoryTable
+            consultations={consultations}
+            loading={loadingConsults}
+            onView={(item: any) => {
+              setDetailItem(item);
+              setDetailOpen(true);
+            }}
+          />
+        ) : (
+          <NewAppointmentDesign patientId={patientId} onSaved={loadConsultations} />
+        )}
       </div>
+
+      {/* Consultation Detail Modal */}
+      {detailOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/30" onClick={() => setDetailOpen(false)} />
+          <div className="relative bg-white w-full max-w-xl mx-4 rounded-lg border border-gray-200 shadow-lg">
+            <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-gray-800">Consultation detail</h3>
+              <button onClick={() => setDetailOpen(false)} className="text-gray-500 text-sm">Close</button>
+            </div>
+            <div className="p-4 space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <p className="text-xs text-gray-500">Date & Time</p>
+                  <p className="text-sm font-medium text-gray-900">{detailItem?.created_at ? new Date(detailItem.created_at).toLocaleString() : 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">Doctor</p>
+                  <p className="text-sm font-medium text-gray-900">{(() => {
+                    const d = detailItem?.doctor || {};
+                    const fromNames = (d.first_name || '') + ' ' + (d.last_name || '');
+                    const full = fromNames.trim() || d.name || (detailItem?.doctor_id ? `#${detailItem.doctor_id}` : 'N/A');
+                    return full || 'N/A';
+                  })()}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">Patient</p>
+                  <p className="text-sm font-medium text-gray-900">{patient.firstName} {patient.lastName}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">Title</p>
+                  <p className="text-sm font-medium text-gray-900">{detailItem?.title || 'N/A'}</p>
+                </div>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">Report</p>
+                <p className="text-sm text-gray-800 whitespace-pre-wrap">{detailItem?.report || 'N/A'}</p>
+              </div>
+              {/* Vitals in detail if present */}
+              {detailItem?.vitals && (
+                <div>
+                  <p className="text-xs text-gray-500 mb-2">Vital Signs</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {[
+                      { label: 'Blood Pressure', value: detailItem.vitals?.blood_pressure },
+                      { label: 'Heart Rate', value: detailItem.vitals?.heart_rate != null ? `${detailItem.vitals.heart_rate} bpm` : null },
+                      { label: 'SPO2', value: detailItem.vitals?.spo2 != null ? `${detailItem.vitals.spo2}%` : null },
+                      { label: 'Temperature', value: detailItem.vitals?.temperature != null ? `${detailItem.vitals.temperature}°C` : null },
+                      { label: 'Respiratory rate', value: detailItem.vitals?.respiratory_rate != null ? `${detailItem.vitals.respiratory_rate} bpm` : null },
+                      { label: 'Weight', value: detailItem.vitals?.weight != null ? `${detailItem.vitals.weight} kg` : null },
+                    ].map((v) => (
+                      <div key={v.label} className="flex items-center justify-between border border-gray-100 rounded-md px-3 py-2">
+                        <span className="text-xs text-gray-500">{v.label}</span>
+                        <span className="text-sm font-medium text-gray-900">{v.value ?? 'N/A'}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-function HistoryTable() {
+function HistoryTable({ consultations, loading, onView }: { consultations: any[]; loading: boolean; onView: (item: any) => void }) {
   const [openRow, setOpenRow] = useState<number | null>(null);
   return (
     <div className="p-4">
@@ -248,38 +376,48 @@ function HistoryTable() {
           <thead>
             <tr className="text-xs text-gray-500 border-b border-gray-200">
               <th className="py-2 px-3 font-medium">Date & Time</th>
-              <th className="py-2 px-3 font-medium">Doctor name</th>
-              <th className="py-2 px-3 font-medium">Severity</th>
-              <th className="py-2 px-3 font-medium">Status</th>
+              <th className="py-2 px-3 font-medium">Doctor</th>
+              <th className="py-2 px-3 font-medium">Title</th>
+              <th className="py-2 px-3 font-medium">Actions</th>
               <th className="py-2 px-3 w-10"></th>
             </tr>
           </thead>
           <tbody className="text-sm">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <tr key={i} className="border-b border-gray-100 hover:bg-gray-50">
-                <td className="py-2.5 px-3">30 Apr 2015, 09:30</td>
-                <td className="py-2.5 px-3">Dr. John Doe</td>
-                <td className="py-2.5 px-3">
-                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-yellow-50 text-yellow-700 border border-yellow-200">Medium</span>
-                </td>
-                <td className="py-2.5 px-3">
-                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-green-50 text-green-700 border border-green-200">Completed</span>
-                </td>
-                <td className="py-2.5 px-3 text-right">
-                  <div className="relative inline-flex">
-                    <button onClick={() => setOpenRow(openRow === i ? null : i)} className="p-1.5 hover:bg-gray-100 border border-gray-200 rounded-md">
-                      <More size={16} className="text-gray-600" />
-                    </button>
-                    {openRow === i && (
-                      <div className="absolute right-0 mt-1 w-36 bg-white border border-gray-200 rounded-md shadow-lg z-10">
-                        <button className="w-full text-left px-3 py-2 text-xs hover:bg-gray-50">View detail</button>
-                        <button className="w-full text-left px-3 py-2 text-xs text-red-600 hover:bg-red-50">Delete</button>
+            {loading ? (
+              <tr><td className="py-3 px-3 text-gray-500" colSpan={5}>Loading...</td></tr>
+            ) : consultations.length === 0 ? (
+              <tr><td className="py-3 px-3 text-gray-500" colSpan={5}>No consultations found.</td></tr>
+            ) : (
+              consultations.map((c: any) => {
+                const dt = c.created_at ? new Date(c.created_at) : null;
+                const when = dt ? dt.toLocaleString() : 'N/A';
+                const doctorName = c.doctor?.first_name || c.doctor?.last_name
+                  ? `${c.doctor?.first_name || ''} ${c.doctor?.last_name || ''}`.trim()
+                  : (c.doctor?.name || `#${c.doctor_id || 'N/A'}`);
+                return (
+                  <tr key={c.id} className="border-b border-gray-100 hover:bg-gray-50">
+                    <td className="py-2.5 px-3">{when}</td>
+                    <td className="py-2.5 px-3">{doctorName || 'N/A'}</td>
+                    <td className="py-2.5 px-3">{c.title || 'N/A'}</td>
+                    <td className="py-2.5 px-3">
+                      <button className="text-xs text-primary hover:underline" onClick={() => onView(c)}>View detail</button>
+                    </td>
+                    <td className="py-2.5 px-3 text-right">
+                      <div className="relative inline-flex">
+                        <button onClick={() => setOpenRow(openRow === c.id ? null : c.id)} className="p-1.5 hover:bg-gray-100 border border-gray-200 rounded-md">
+                          <More size={16} className="text-gray-600" />
+                        </button>
+                        {openRow === c.id && (
+                          <div className="absolute right-0 mt-1 w-36 bg-white border border-gray-200 rounded-md shadow-lg z-10">
+                            <button className="w-full text-left px-3 py-2 text-xs hover:bg-gray-50" onClick={() => onView(c)}>View detail</button>
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ))}
+                    </td>
+                  </tr>
+                );
+              })
+            )}
           </tbody>
         </table>
       </div>
@@ -299,7 +437,7 @@ function HistoryTable() {
   );
 }
 
-function NewAppointmentDesign() {
+function NewAppointmentDesign({ patientId, onSaved }: { patientId: string; onSaved: () => void }) {
   const [recording, setRecording] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [interimText, setInterimText] = useState("");
@@ -613,17 +751,44 @@ function NewAppointmentDesign() {
 
   const handleGenerateReport = async () => {
     setGenerating(true);
-    // Fake 5-second loader
-    await new Promise((r) => setTimeout(r, 5000));
-    setGenerating(false);
-    setShowReport(true);
-    // Auto-scroll to report
-    setTimeout(() => {
-      const reportEl = document.getElementById("consultation-report");
-      if (reportEl) {
-        reportEl.scrollIntoView({ behavior: "smooth", block: "start" });
+    try {
+      // optional: brief UX delay
+      await new Promise((r) => setTimeout(r, 800));
+      // Build a concise report from transcript and summary data
+      const parts: string[] = [];
+      if (transcript) parts.push(`Transcript:\n${transcript}`);
+      if (symptoms) parts.push(`Symptoms: ${symptoms}`);
+      if (duration) parts.push(`Duration: ${duration}`);
+      if (diagnosis) parts.push(`Possible diagnosis: ${diagnosis}`);
+      if (treatment) parts.push(`Recommended treatment: ${treatment}`);
+      if (comment) parts.push(`Comment: ${comment}`);
+      const reportText = parts.join("\n\n");
+
+      const payload: any = {
+        patient_id: patientId,
+        title: diagnosis || 'Consultation',
+        report: reportText || 'N/A',
+      };
+      // Save consultation
+      const res = await apiService.createConsultation(payload);
+      if (res?.success) {
+        setShowReport(true);
+        onSaved && onSaved();
+        // Auto-scroll to report
+        setTimeout(() => {
+          const reportEl = document.getElementById('consultation-report');
+          if (reportEl) {
+            reportEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, 100);
+      } else {
+        alert(res?.message || 'Failed to save consultation');
       }
-    }, 100);
+    } catch (e: any) {
+      alert(e?.message || 'Failed to save consultation');
+    } finally {
+      setGenerating(false);
+    }
   };
 
   const handleRestart = () => {
