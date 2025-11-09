@@ -20,6 +20,46 @@ This backend follows a clean architecture pattern with:
 - Docker & Docker Compose
 - PHPUnit for testing
 
+## Authentication
+
+This API uses stateless JWT (JSON Web Token) authentication via `php-open-source-saver/jwt-auth`.
+
+### JWT Setup (Docker)
+
+Run these commands once inside the backend container:
+
+```bash
+# Install the JWT package
+docker compose exec backend-app composer require php-open-source-saver/jwt-auth
+
+# Publish the JWT config file (config/jwt.php)
+docker compose exec backend-app php artisan vendor:publish --provider="PHPOpenSourceSaver\\JWTAuth\\Providers\\LaravelServiceProvider"
+
+# Generate JWT secret and write JWT_SECRET to .env
+docker compose exec backend-app php artisan jwt:secret
+
+# Clear and reload config cache
+docker compose exec backend-app php artisan config:clear
+```
+
+The `config/auth.php` is configured with the `jwt` guard for the API, and route middleware aliases `jwt.auth` and `jwt.refresh` are registered.
+
+### Using JWT in requests
+
+Include the token returned by the login endpoint in the Authorization header:
+
+```
+Authorization: Bearer <jwt-token>
+```
+
+### Auth Endpoints
+
+- `POST /api/v1/auth/login` – Returns `token` on success
+- `POST /api/v1/auth/logout` – Invalidates the current token (requires Authorization header)
+- `GET /api/v1/auth/me` – Returns the authenticated user (requires Authorization header)
+
+Protected API routes are wrapped with the `jwt.auth` middleware.
+
 ## Project Structure
 
 ```

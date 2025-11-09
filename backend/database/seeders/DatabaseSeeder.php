@@ -11,6 +11,10 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        $this->call([
+            AdminSeeder::class,
+        ]);
+        
         // Example: Create some test patients
         // \App\Models\Patient::factory(10)->create();
     }

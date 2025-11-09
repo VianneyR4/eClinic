@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import PatientList from '@/components/PatientList';
 import PatientForm from '@/components/PatientForm';
 import SlideOver from '@/components/SlideOver';
+import AppointmentModal from '@/components/AppointmentModal';
 import { useRxDB } from '@/providers/RxDBProvider';
 import { Add, Filter } from 'iconsax-react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -16,6 +17,8 @@ export default function PatientsPage() {
   const [editingPatient, setEditingPatient] = useState<any>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState<{ q?: string; gender?: string }>({});
+  const [newPatient, setNewPatient] = useState<any>(null);
+  const [showAppointmentModal, setShowAppointmentModal] = useState(false);
 
   // Open create modal if ?create=1
   useEffect(() => {
@@ -54,8 +57,23 @@ export default function PatientsPage() {
     }
   };
 
-  const handleSave = () => {
+  const handleSave = (patientData?: any) => {
     setShowForm(false);
+    const wasEditing = !!editingPatient;
+    const savedPatient = patientData?.data || patientData;
+    
+    if (!wasEditing && savedPatient) {
+      // New patient created - show appointment modal
+      setNewPatient({
+        id: savedPatient.id,
+        firstName: savedPatient.first_name || savedPatient.firstName,
+        lastName: savedPatient.last_name || savedPatient.lastName,
+        fullName: `${savedPatient.first_name || savedPatient.firstName} ${savedPatient.last_name || savedPatient.lastName}`,
+        photo: savedPatient.photo,
+      });
+      setShowAppointmentModal(true);
+    }
+    
     setEditingPatient(null);
   };
 
@@ -126,7 +144,7 @@ export default function PatientsPage() {
       </div>
 
       <div className="">
-        <PatientList onEdit={handleEdit} onDelete={isInitialized && db ? handleDelete : undefined} />
+        <PatientList onEdit={handleEdit} filters={filters} />
       </div>
 
       <SlideOver
@@ -148,6 +166,22 @@ export default function PatientsPage() {
           />
         </div>
       </SlideOver>
+
+      {/* Appointment Modal */}
+      {newPatient && (
+        <AppointmentModal
+          patient={newPatient}
+          isOpen={showAppointmentModal}
+          onClose={() => {
+            setShowAppointmentModal(false);
+            setNewPatient(null);
+          }}
+          onSuccess={() => {
+            setShowAppointmentModal(false);
+            setNewPatient(null);
+          }}
+        />
+      )}
     </div>
   );
 }
