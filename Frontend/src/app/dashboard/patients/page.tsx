@@ -1,15 +1,29 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import PatientList from '@/components/PatientList';
 import PatientForm from '@/components/PatientForm';
+import SlideOver from '@/components/SlideOver';
 import { useRxDB } from '@/providers/RxDBProvider';
-import { Add } from 'iconsax-react';
+import { Add, Filter } from 'iconsax-react';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 export default function PatientsPage() {
   const { db, isInitialized } = useRxDB();
+  const router = useRouter();
+  const search = useSearchParams();
   const [showForm, setShowForm] = useState(false);
   const [editingPatient, setEditingPatient] = useState<any>(null);
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState<{ q?: string; gender?: string }>({});
+
+  // Open create modal if ?create=1
+  useEffect(() => {
+    if (search.get('create') === '1') {
+      setEditingPatient(null);
+      setShowForm(true);
+    }
+  }, [search]);
 
   const handleEdit = (patient: any) => {
     setEditingPatient(patient);
@@ -52,41 +66,88 @@ export default function PatientsPage() {
 
   return (
     <div className="w-full max-w-7xl mx-auto">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
-        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-800">Patients</h1>
-        {!showForm && (
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 mb-4 sm:mb-6">
+        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-800">Patients List</h1>
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <div className="relative">
+            <button
+              onClick={() => setShowFilters((v) => !v)}
+              className="px-3 py-2 text-sm border border-gray-200 rounded-md bg-white hover:bg-gray-50 flex items-center gap-2 w-full sm:w-auto"
+            >
+              <Filter size={16} />
+              <span>Filters</span>
+            </button>
+            {showFilters && (
+              <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-200 rounded-md shadow-lg p-3 z-20">
+                <div className="space-y-2">
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Search</label>
+                    <input
+                      value={filters.q || ''}
+                      onChange={(e) => setFilters((f) => ({ ...f, q: e.target.value }))}
+                      placeholder="Name, phone, email"
+                      className="w-full border border-gray-200 rounded-md px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Gender</label>
+                    <select
+                      value={filters.gender || ''}
+                      onChange={(e) => setFilters((f) => ({ ...f, gender: e.target.value }))}
+                      className="w-full border border-gray-200 rounded-md px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                    >
+                      <option value="">All</option>
+                      <option value="male">Male</option>
+                      <option value="female">Female</option>
+                    </select>
+                  </div>
+                  <div className="flex items-center justify-end gap-2 pt-1">
+                    <button onClick={() => setFilters({})} className="text-xs text-gray-600 hover:underline">Reset</button>
+                    <button onClick={() => setShowFilters(false)} className="text-xs text-primary hover:underline">Apply</button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
           <button
             onClick={() => {
               setEditingPatient(null);
               setShowForm(true);
+              const params = new URLSearchParams(search as any);
+              params.set('create', '1');
+              router.replace(`?${params.toString()}`);
             }}
-            className="w-full sm:w-auto px-4 py-2 text-sm text-white bg-primary rounded-md hover:bg-opacity-90 transition flex items-center justify-center gap-2"
+            className="ml-auto sm:ml-0 px-4 py-2 text-sm text-white bg-primary rounded-md hover:bg-opacity-90 transition flex items-center justify-center gap-2"
           >
             <Add size={16} />
-            <span>Add Patient</span>
+            <span>New Patient</span>
           </button>
-        )}
+        </div>
       </div>
 
-      {showForm ? (
-        <div className="bg-white rounded-md p-4 sm:p-6 shadow-sm">
+      <div className="">
+        <PatientList onEdit={handleEdit} onDelete={isInitialized && db ? handleDelete : undefined} />
+      </div>
+
+      <SlideOver
+        open={showForm}
+        onClose={() => {
+          setShowForm(false);
+          const params = new URLSearchParams(search as any);
+          params.delete('create');
+          router.replace(`?${params.toString()}`);
+        }}
+        title={editingPatient ? 'Edit Patient' : 'Create Patient'}
+        widthClass="max-w-lg"
+      >
+        <div className="p-4">
           <PatientForm
             patient={editingPatient}
             onSave={handleSave}
             onCancel={handleCancel}
           />
         </div>
-      ) : (
-        <div className="bg-white rounded-md p-4 sm:p-6 shadow-sm">
-          {!isInitialized ? (
-            <div className="flex items-center justify-center p-8">
-              <div className="text-sm text-gray-600">Initializing database...</div>
-            </div>
-          ) : (
-            <PatientList onEdit={handleEdit} onDelete={handleDelete} />
-          )}
-        </div>
-      )}
+      </SlideOver>
     </div>
   );
 }

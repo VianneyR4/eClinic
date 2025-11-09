@@ -175,4 +175,24 @@ MIT License – see `LICENSE` for details.
 ---
 
 **eClinic**  
-Simplifying healthcare for rural clinics — offline, reliable, and human-centered.
+
+
+
+
+
+
+
+
+
+
+
+<!-- Notes and limitations
+Offline STT reality: The Web Speech API behavior offline varies by browser/platform. If you require guaranteed offline STT, we should embed a WASM engine (e.g., Vosk WASM or Whisper.cpp via WebAssembly). That needs model files shipped locally and is heavier. I can add this if you want.
+Local summarizer: The summarizer is rule-based to meet the no-internet requirement and runs fully in the browser. If you want smarter summaries offline, we can integrate a small on-device model (e.g., WebLLM/WebGPU) but this adds assets and complexity.
+Next steps (optional)
+Guaranteed offline STT: Integrate Vosk WASM and a small language model, add a toggle to switch engines.
+Language support: Set rec.lang (e.g., “en-US”, “fr-FR”, “rw-RW”) or match your clinic languages.
+Persist locally: Save transcript/summary to IndexedDB (RxDB) for later viewing.
+Filter menu content: Define actual filters for History table.
+Report branding: Add clinic logo/header/footer and QR code for record lookup.
+Task status: Implemented live speech-to-text, live local summarization, comment field, and a printable/downloadable report on the New appointment tab. -->
