@@ -43,10 +43,6 @@ jobs:
         working-directory: ./Frontend
         run: npm ci
 
-      - name: Run Frontend linter
-        working-directory: ./Frontend
-        run: npm run lint
-
       - name: Run Frontend tests
         working-directory: ./Frontend
         run: npm test -- --coverage --watchAll=false

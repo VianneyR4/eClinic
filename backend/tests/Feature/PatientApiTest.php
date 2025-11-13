@@ -3,12 +3,26 @@
 namespace Tests\Feature;
 
 use App\Models\Patient;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
+use PHPOpenSourceSaver\JWTAuth\Facades\JWTAuth;
 
 class PatientApiTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected array $authHeader;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $user = User::factory()->create([
+            'email_verified_at' => now(),
+        ]);
+        $token = JWTAuth::fromUser($user);
+        $this->authHeader = ['Authorization' => 'Bearer ' . $token];
+    }
 
     /**
      * Test fetching all patients.
@@ -17,7 +31,7 @@ class PatientApiTest extends TestCase
     {
         Patient::factory()->count(5)->create();
 
-        $response = $this->getJson('/api/v1/patients');
+        $response = $this->withHeaders($this->authHeader)->getJson('/api/v1/patients');
 
         $response->assertStatus(200)
             ->assertJsonStructure([
@@ -56,7 +70,7 @@ class PatientApiTest extends TestCase
             ],
         ];
 
-        $response = $this->postJson('/api/v1/patients', $patientData);
+        $response = $this->withHeaders($this->authHeader)->postJson('/api/v1/patients', $patientData);
 
         $response->assertStatus(201)
             ->assertJson([
@@ -84,7 +98,7 @@ class PatientApiTest extends TestCase
     {
         $patient = Patient::factory()->create();
 
-        $response = $this->getJson("/api/v1/patients/{$patient->id}");
+        $response = $this->withHeaders($this->authHeader)->getJson("/api/v1/patients/{$patient->id}");
 
         $response->assertStatus(200)
             ->assertJson([
@@ -109,7 +123,7 @@ class PatientApiTest extends TestCase
             'last_name' => 'Smith',
         ];
 
-        $response = $this->putJson("/api/v1/patients/{$patient->id}", $updateData);
+        $response = $this->withHeaders($this->authHeader)->putJson("/api/v1/patients/{$patient->id}", $updateData);
 
         $response->assertStatus(200)
             ->assertJson([
@@ -131,7 +145,7 @@ class PatientApiTest extends TestCase
     {
         $patient = Patient::factory()->create();
 
-        $response = $this->deleteJson("/api/v1/patients/{$patient->id}");
+        $response = $this->withHeaders($this->authHeader)->deleteJson("/api/v1/patients/{$patient->id}");
 
         $response->assertStatus(200)
             ->assertJson([
@@ -149,7 +163,7 @@ class PatientApiTest extends TestCase
      */
     public function test_validation_errors_on_create(): void
     {
-        $response = $this->postJson('/api/v1/patients', []);
+        $response = $this->withHeaders($this->authHeader)->postJson('/api/v1/patients', []);
 
         $response->assertStatus(422)
             ->assertJsonStructure([
@@ -164,7 +178,7 @@ class PatientApiTest extends TestCase
      */
     public function test_returns_404_for_nonexistent_patient(): void
     {
-        $response = $this->getJson('/api/v1/patients/999');
+        $response = $this->withHeaders($this->authHeader)->getJson('/api/v1/patients/999');
 
         $response->assertStatus(404);
     }

@@ -37,32 +37,36 @@ return new class extends Migration
             }
         });
 
-        // 2. Move existing doctors into users table
+        // 2. Move existing doctors into users table (skip on SQLite to support in-memory tests)
         if (Schema::hasTable('doctors')) {
-            // Check if password column exists in doctors table
-            $hasPasswordColumn = Schema::hasColumn('doctors', 'password');
-            
-            if ($hasPasswordColumn) {
-                // Insert doctors rows into users with role='doctor' (with password)
-                DB::statement("INSERT INTO users (name, first_name, last_name, email, phone, specialty, id_number, address, photo, password, role, created_at, updated_at) 
-                    SELECT CONCAT(first_name,' ',last_name), first_name, last_name, email, phone, specialty, id_number, address, photo, COALESCE(password,''), 'doctor', NOW(), NOW() 
-                    FROM doctors 
-                    ON CONFLICT (email) DO NOTHING");
-            } else {
-                // Insert doctors rows into users with role='doctor' (without password - will be empty string)
-                DB::statement("INSERT INTO users (name, first_name, last_name, email, phone, specialty, id_number, address, photo, password, role, created_at, updated_at) 
-                    SELECT CONCAT(first_name,' ',last_name), first_name, last_name, email, phone, specialty, id_number, address, photo, '', 'doctor', NOW(), NOW() 
-                    FROM doctors 
-                    ON CONFLICT (email) DO NOTHING");
+            if (DB::getDriverName() !== 'sqlite') {
+                // Check if password column exists in doctors table
+                $hasPasswordColumn = Schema::hasColumn('doctors', 'password');
+
+                if ($hasPasswordColumn) {
+                    // Insert doctors rows into users with role='doctor' (with password)
+                    DB::statement("INSERT INTO users (name, first_name, last_name, email, phone, specialty, id_number, address, photo, password, role, created_at, updated_at) 
+                        SELECT CONCAT(first_name,' ',last_name), first_name, last_name, email, phone, specialty, id_number, address, photo, COALESCE(password,''), 'doctor', NOW(), NOW() 
+                        FROM doctors 
+                        ON CONFLICT (email) DO NOTHING");
+                } else {
+                    // Insert doctors rows into users with role='doctor' (without password - will be empty string)
+                    DB::statement("INSERT INTO users (name, first_name, last_name, email, phone, specialty, id_number, address, photo, password, role, created_at, updated_at) 
+                        SELECT CONCAT(first_name,' ',last_name), first_name, last_name, email, phone, specialty, id_number, address, photo, '', 'doctor', NOW(), NOW() 
+                        FROM doctors 
+                        ON CONFLICT (email) DO NOTHING");
+                }
             }
         }
 
         // 3. Update consultations foreign key to reference users.id (if consultations exists)
         if (Schema::hasTable('consultations')) {
-            // Drop old FK if exists
-            DB::statement("ALTER TABLE consultations DROP CONSTRAINT IF EXISTS consultations_doctor_id_foreign");
-            // Ensure doctor_id column exists; keep same name but point to users
-            DB::statement("ALTER TABLE consultations ADD CONSTRAINT consultations_doctor_id_foreign FOREIGN KEY (doctor_id) REFERENCES users(id) ON DELETE CASCADE");
+            if (DB::getDriverName() !== 'sqlite') {
+                // Drop old FK if exists
+                DB::statement("ALTER TABLE consultations DROP CONSTRAINT IF EXISTS consultations_doctor_id_foreign");
+                // Ensure doctor_id column exists; keep same name but point to users
+                DB::statement("ALTER TABLE consultations ADD CONSTRAINT consultations_doctor_id_foreign FOREIGN KEY (doctor_id) REFERENCES users(id) ON DELETE CASCADE");
+            }
         }
 
         // 4. Drop doctors table

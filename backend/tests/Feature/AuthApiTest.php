@@ -12,24 +12,41 @@ class AuthApiTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_admin_user_can_login(): void
+    public function test_user_login_requires_verification_then_returns_token_after_verification(): void
     {
         $user = User::factory()->create([
             'email' => 'admin@gmail.com',
             'password' => Hash::make('admin123456'),
-            'email_verified_at' => now(),
+            'email_verified_at' => null,
         ]);
 
-        $response = $this->postJson('/api/v1/auth/login', [
+        // First step: login triggers verification requirement
+        $login = $this->postJson('/api/v1/auth/login', [
             'email' => 'admin@gmail.com',
             'password' => 'admin123456',
         ]);
 
-        $response->assertStatus(200)
+        $login->assertStatus(403)
+            ->assertJson([
+                'success' => false,
+                'requires_verification' => true,
+            ]);
+
+        // Find the latest verification code issued
+        $code = \App\Models\VerificationCode::where('user_id', $user->id)->latest('id')->first();
+        $this->assertNotNull($code, 'Verification code should be generated on login');
+
+        // Verify email to obtain JWT
+        $verify = $this->postJson('/api/v1/auth/verify-email', [
+            'email' => 'admin@gmail.com',
+            'code' => $code->code,
+        ]);
+
+        $verify->assertStatus(200)
             ->assertJsonStructure([
                 'success',
                 'data' => [
-                    'user',
+                    'user' => ['id','name','email'],
                     'token',
                 ],
             ])
@@ -76,7 +93,6 @@ class AuthApiTest extends TestCase
         $user = User::factory()->create([
             'email_verified_at' => now(),
         ]);
-
         $token = JWTAuth::fromUser($user);
 
         $response = $this->withHeader('Authorization', 'Bearer ' . $token)
