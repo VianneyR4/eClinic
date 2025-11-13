@@ -19,8 +19,16 @@ class User extends Authenticatable implements JWTSubject
      */
     protected $fillable = [
         'name',
+        'first_name',
+        'last_name',
         'email',
+        'phone',
         'password',
+        'specialty',
+        'id_number',
+        'address',
+        'photo',
+        'role',
         'verification_code',
         'verification_code_expires_at',
         'email_verified_at',
@@ -48,6 +56,7 @@ class User extends Authenticatable implements JWTSubject
             'email_verified_at' => 'datetime',
             'verification_code_expires_at' => 'datetime',
             'password' => 'hashed',
+            'address' => 'array',
         ];
     }
 
@@ -102,6 +111,60 @@ class User extends Authenticatable implements JWTSubject
             'verification_code' => null,
             'verification_code_expires_at' => null,
         ]);
+    }
+
+    /**
+     * Check if user is a doctor.
+     */
+    public function isDoctor(): bool
+    {
+        return $this->role === 'doctor';
+    }
+
+    /**
+     * Get the user's full name (using first_name/last_name if available, otherwise name).
+     */
+    public function getFullNameAttribute(): string
+    {
+        if ($this->first_name && $this->last_name) {
+            return "{$this->first_name} {$this->last_name}";
+        }
+        return $this->name;
+    }
+
+    /**
+     * Get formatted address string.
+     */
+    public function getFormattedAddressAttribute(): string
+    {
+        if (!$this->address || !is_array($this->address)) {
+            return '';
+        }
+
+        $parts = array_filter([
+            $this->address['street'] ?? null,
+            $this->address['city'] ?? null,
+            $this->address['state'] ?? null,
+            $this->address['zipCode'] ?? null,
+        ]);
+
+        return implode(', ', $parts);
+    }
+
+    /**
+     * Scope a query to only include doctors.
+     */
+    public function scopeDoctors($query)
+    {
+        return $query->where('role', 'doctor');
+    }
+
+    /**
+     * Get consultations for this user (when user is a doctor).
+     */
+    public function consultations()
+    {
+        return $this->hasMany(Consultation::class, 'doctor_id');
     }
 }
 

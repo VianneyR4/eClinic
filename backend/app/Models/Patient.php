@@ -17,13 +17,18 @@ class Patient extends Model
         'phone',
         'id_number',
         'date_of_birth',
+        'birthday',
+        'blood_group',
+        'gender',
         'address',
         'medical_history',
+        'vital_signs',
         'photo',
+        'last_visited_at',
     ];
 
     protected $casts = [
-        'date_of_birth' => 'datetime',
+        'date_of_birth' => 'date',
         'birthday' => 'date',
         'address' => 'array',
         'medical_history' => 'array',
@@ -31,6 +36,7 @@ class Patient extends Model
         'last_visited_at' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
+        'deleted_at' => 'datetime',
     ];
 
     /**

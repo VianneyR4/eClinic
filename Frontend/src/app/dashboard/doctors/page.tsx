@@ -14,6 +14,7 @@ export default function DoctorsPage() {
   const [editingDoctor, setEditingDoctor] = useState<any>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState<{ q?: string; specialty?: string }>({});
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     if (search.get('create') === '1') {
@@ -29,7 +30,11 @@ export default function DoctorsPage() {
 
   const handleSave = () => {
     setShowForm(false);
+    // Ensure the listing refreshes to show latest server data
+    try { router.refresh(); } catch {}
     setEditingDoctor(null);
+    // Force DoctorList to refetch immediately
+    setReloadKey((k) => k + 1);
   };
 
   const handleCancel = () => {
@@ -96,7 +101,7 @@ export default function DoctorsPage() {
       </div>
 
       <div className="">
-        <DoctorList onEdit={handleEdit} filters={filters} />
+        <DoctorList onEdit={handleEdit} filters={filters} reloadKey={reloadKey} />
       </div>
 
       <SlideOver

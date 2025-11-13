@@ -19,15 +19,6 @@ class DoctorController extends Controller
     public function index(Request $request): JsonResponse
     {
         try {
-            // Check if doctors table exists
-            if (!Schema::hasTable('doctors')) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Doctors table does not exist. Please run migrations.',
-                    'error' => 'Table "doctors" not found. Run: docker-compose exec app php artisan migrate',
-                ], 500);
-            }
-
             $perPage = $request->get('per_page', 15);
             $filters = $request->only(['search', 'email', 'specialty']);
 
@@ -87,9 +78,9 @@ class DoctorController extends Controller
             // Transform camelCase to snake_case for database
             $data = $this->transformToSnakeCase($data);
 
-            // Validation: email required and unique
+            // Validation: email required and unique (checking users table with role='doctor')
             $request->validate([
-                'email' => 'required|email|unique:doctors,email',
+                'email' => 'required|email|unique:users,email,NULL,id,role,doctor',
                 'first_name' => 'required|string|max:255',
                 'last_name' => 'required|string|max:255',
             ]);

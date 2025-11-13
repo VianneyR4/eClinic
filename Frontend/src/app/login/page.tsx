@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Eye, EyeSlash } from "iconsax-react";
+import { ArrowRight, Eye, EyeSlash, SmsTracking } from "iconsax-react";
 import { apiService } from "@/services/api";
 
 export default function LoginPage() {
@@ -26,25 +26,23 @@ export default function LoginPage() {
       const response = await apiService.login(email, password);
 
       if (response.success) {
-        // Login successful - store token and redirect
         if (response.data?.token) {
           localStorage.setItem("token", response.data.token);
           router.push("/dashboard");
         }
       } else {
-        // Check if email verification is required
         if (response.requires_verification) {
           setShowVerification(true);
-          setSuccess("Verification code sent to your email. Please check your inbox.");
+          setSuccess("Verification code sent. Please check your email to continue.");
         } else {
           setError(response.message || "Login failed. Please check your credentials.");
         }
       }
     } catch (err: any) {
-      const errorMessage = err.response?.data?.message || "An error occurred during login. Please try again.";
+      const errorMessage =
+        err.response?.data?.message || "An error occurred during login. Please try again.";
       setError(errorMessage);
-      
-      // Check if verification is required
+
       if (err.response?.data?.requires_verification) {
         setShowVerification(true);
         setSuccess("Verification code sent to your email. Please check your inbox.");
@@ -75,7 +73,8 @@ export default function LoginPage() {
         setError(response.message || "Invalid verification code. Please try again.");
       }
     } catch (err: any) {
-      const errorMessage = err.response?.data?.message || "Invalid verification code. Please try again.";
+      const errorMessage =
+        err.response?.data?.message || "Invalid verification code. Please try again.";
       setError(errorMessage);
     } finally {
       setIsLoading(false);
@@ -95,7 +94,8 @@ export default function LoginPage() {
         setError(response.message || "Failed to resend verification code.");
       }
     } catch (err: any) {
-      const errorMessage = err.response?.data?.message || "Failed to resend verification code.";
+      const errorMessage =
+        err.response?.data?.message || "Failed to resend verification code.";
       setError(errorMessage);
     } finally {
       setIsLoading(false);
@@ -111,19 +111,27 @@ export default function LoginPage() {
             <p className="text-sm text-gray-600">Sign in to your account</p>
           </div>
 
+
           {/* Error Message */}
           {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
-              <p className="text-sm text-red-800">{error}</p>
+            <div className="mb-4 border border-red-200 rounded-md p-3 text-sm text-red-700 bg-red-50/50">
+              {error}
             </div>
           )}
 
-          {/* Success Message */}
-          {success && (
-            <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md">
-              <p className="text-sm text-green-800">{success}</p>
+
+          {/* {success && (
+            <p className="mb-4 text-sm text-green-600 font-medium text-center">{success}</p>
+          )} */}
+
+
+          {/* Modern Success / Info Message */}
+          {/* {success && (
+            <div className="mb-4 border border-gray-200 rounded-md p-3 flex items-start gap-3 bg-gray-50">
+              <SmsTracking size={18} className="text-primary mt-0.5" />
+              <div className="text-sm text-gray-800 leading-snug">{success}</div>
             </div>
-          )}
+          )} */}
 
           {!showVerification ? (
             <form onSubmit={handleLogin} className="space-y-4">
@@ -170,11 +178,7 @@ export default function LoginPage() {
                     disabled={isLoading}
                     className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 disabled:opacity-50"
                   >
-                    {showPassword ? (
-                      <EyeSlash size={16} />
-                    ) : (
-                      <Eye size={16} />
-                    )}
+                    {showPassword ? <EyeSlash size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
               </div>
@@ -184,25 +188,22 @@ export default function LoginPage() {
                 disabled={isLoading}
                 className="w-full bg-primary text-white py-2 text-sm rounded-md font-medium hover:bg-opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
               >
-                {isLoading ? (
-                  "Signing in..."
-                ) : (
-                  <>
-                    Sign In
-                    <ArrowRight size={16} />
-                  </>
-                )}
+                {isLoading ? "Signing in..." : <>Sign In <ArrowRight size={16} /></>}
               </button>
             </form>
           ) : (
             <div className="space-y-4">
-              <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
-                <p className="text-xs font-medium text-blue-900 mb-1.5">
-                  Email Verification Required
-                </p>
-                <p className="text-sm text-blue-700">
-                  We've sent a verification code to <strong>{email}</strong>. Please check your email and enter the code below.
-                </p>
+              {/* Simplified Email Verification Info */}
+            <div className="mb-4 border border-gray-200 rounded-md p-3 flex items-start gap-3 bg-gray-50">
+                <SmsTracking size={48} className="text-primary" style={{ marginTop: '-13px' }} />
+                <div className="text-sm text-gray-800 leading-snug">
+                  <p className="font-medium">Email Verification Required</p>
+                  <p>
+                    We&rsquo;ve sent a 6-digit code to{" "}
+                    <span className="font-semibold">{email}</span>. Please check
+                    your inbox and enter it below to continue.
+                  </p>
+                </div>
               </div>
 
               <form onSubmit={handleVerify} className="space-y-4">
@@ -217,7 +218,9 @@ export default function LoginPage() {
                     id="code"
                     type="text"
                     value={verificationCode}
-                    onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    onChange={(e) =>
+                      setVerificationCode(e.target.value.replace(/\D/g, "").slice(0, 6))
+                    }
                     required
                     maxLength={6}
                     disabled={isLoading}
@@ -231,14 +234,7 @@ export default function LoginPage() {
                   disabled={isLoading || verificationCode.length !== 6}
                   className="w-full bg-primary text-white py-2 text-sm rounded-md font-medium hover:bg-opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
                 >
-                  {isLoading ? (
-                    "Verifying..."
-                  ) : (
-                    <>
-                      Verify Email
-                      <ArrowRight size={16} />
-                    </>
-                  )}
+                  {isLoading ? "Verifying..." : <>Verify Email <ArrowRight size={16} /></>}
                 </button>
 
                 <button
@@ -271,4 +267,3 @@ export default function LoginPage() {
     </div>
   );
 }
-

@@ -19,6 +19,7 @@ export default function PatientsPage() {
   const [filters, setFilters] = useState<{ q?: string; gender?: string }>({});
   const [newPatient, setNewPatient] = useState<any>(null);
   const [showAppointmentModal, setShowAppointmentModal] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
 
   // Open create modal if ?create=1
   useEffect(() => {
@@ -31,6 +32,19 @@ export default function PatientsPage() {
   const handleEdit = (patient: any) => {
     setEditingPatient(patient);
     setShowForm(true);
+  };
+
+  const handleSendToQueue = (patient: any) => {
+    const firstName = patient.firstName || patient.first_name || '';
+    const lastName = patient.lastName || patient.last_name || '';
+    setNewPatient({
+      id: patient.id,
+      firstName,
+      lastName,
+      fullName: `${firstName} ${lastName}`.trim(),
+      photo: patient.photo,
+    });
+    setShowAppointmentModal(true);
   };
 
   const handleDelete = async (id: string) => {
@@ -74,7 +88,12 @@ export default function PatientsPage() {
       setShowAppointmentModal(true);
     }
     
+    // Ensure the listing refreshes to show latest server data
+    try { router.refresh(); } catch {}
+
     setEditingPatient(null);
+    // Force PatientList to refetch immediately
+    setReloadKey((k) => k + 1);
   };
 
   const handleCancel = () => {
@@ -144,7 +163,7 @@ export default function PatientsPage() {
       </div>
 
       <div className="">
-        <PatientList onEdit={handleEdit} filters={filters} />
+        <PatientList onEdit={handleEdit} onSendToQueue={handleSendToQueue} filters={filters} reloadKey={reloadKey} />
       </div>
 
       <SlideOver
@@ -158,7 +177,7 @@ export default function PatientsPage() {
         title={editingPatient ? 'Edit Patient' : 'Create Patient'}
         widthClass="max-w-lg"
       >
-        <div className="p-4">
+        <div className="">
           <PatientForm
             patient={editingPatient}
             onSave={handleSave}

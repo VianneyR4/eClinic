@@ -36,8 +36,10 @@ export default function SlideOver({ open, title, widthClass = "max-w-md", onClos
           <h3 className="text-sm font-semibold text-gray-800">{title}</h3>
           <button onClick={onClose} className="text-gray-500 hover:text-gray-700 text-sm">Close</button>
         </div>
-        <div className="flex-1 overflow-auto">
-          {children}
+        <div className="flex-1 overflow-hidden flex flex-col">
+          <div className="flex-1 overflow-y-auto">
+            {children}
+          </div>
         </div>
       </div>
     </div>

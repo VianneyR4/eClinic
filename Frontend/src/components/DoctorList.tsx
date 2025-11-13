@@ -22,18 +22,33 @@ interface DoctorListProps {
   onEdit?: (doctor: Doctor) => void;
   onDelete?: (id: string) => void;
   filters?: { q?: string; specialty?: string };
+  reloadKey?: number;
 }
 
-export default function DoctorList({ onEdit, onDelete, filters }: DoctorListProps) {
+export default function DoctorList({ onEdit, onDelete, filters, reloadKey }: DoctorListProps) {
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuOpenId !== null) {
+        const target = event.target as HTMLElement;
+        if (!target.closest('.dropdown-container')) {
+          setMenuOpenId(null);
+        }
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [menuOpenId]);
+
   useEffect(() => {
     loadDoctors();
-  }, [filters]);
+  }, [filters, reloadKey]);
 
   const loadDoctors = async () => {
     try {
@@ -121,7 +136,11 @@ export default function DoctorList({ onEdit, onDelete, filters }: DoctorListProp
         const doctorId = doc.id.toString();
 
         return (
-          <li key={doctorId} className="relative bg-white rounded-lg p-5 border border-gray-200 hover:shadow-md transition">
+          <li 
+            key={doctorId} 
+            onClick={() => router.push(`/dashboard/doctors/${doctorId}`)}
+            className="relative bg-white rounded-lg p-5 border border-gray-200 hover:shadow-md transition cursor-pointer"
+          >
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-center gap-3 min-w-0">
                 <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-semibold">
@@ -129,12 +148,15 @@ export default function DoctorList({ onEdit, onDelete, filters }: DoctorListProp
                 </div>
                 <div className="min-w-0">
                   <p className="text-base font-medium text-gray-900 truncate">{name.full}</p>
-                  <p className="text-sm text-gray-500 truncate">{doc.specialty || 'N/A'}</p>
+                  <p className="text-sm text-gray-500 truncate">{doc.specialty || 'Specialty: N/A'}</p>
                 </div>
               </div>
-              <div className="relative">
+              <div className="relative dropdown-container">
                 <button 
-                  onClick={() => setMenuOpenId(menuOpenId === doctorId ? null : doctorId)} 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setMenuOpenId(menuOpenId === doctorId ? null : doctorId);
+                  }} 
                   className="p-1.5 hover:bg-gray-100 border border-gray-200 rounded-md"
                 >
                   <More size={16} className="text-gray-600" />
@@ -147,7 +169,8 @@ export default function DoctorList({ onEdit, onDelete, filters }: DoctorListProp
                     />
                     <div className="absolute right-0 mt-1 w-36 bg-white border border-gray-200 rounded-md shadow-lg z-10">
                       <button 
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation();
                           router.push(`/dashboard/doctors/${doctorId}`);
                           setMenuOpenId(null);
                         }} 
@@ -157,7 +180,8 @@ export default function DoctorList({ onEdit, onDelete, filters }: DoctorListProp
                       </button>
                       {onEdit && (
                         <button 
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation();
                             onEdit(doc);
                             setMenuOpenId(null);
                           }} 
@@ -168,7 +192,8 @@ export default function DoctorList({ onEdit, onDelete, filters }: DoctorListProp
                       )}
                       {onDelete && (
                         <button 
-                          onClick={async () => {
+                          onClick={async (e) => {
+                            e.stopPropagation();
                             if (confirm('Are you sure you want to delete this doctor?')) {
                               try {
                                 await apiService.deleteDoctor(doctorId);
@@ -198,11 +223,11 @@ export default function DoctorList({ onEdit, onDelete, filters }: DoctorListProp
               <div className="flex items-center gap-3 text-xs text-gray-600 pt-1">
                 <span className="inline-flex items-center gap-1">
                   <Call size={14} className="text-gray-400" /> 
-                  <span className="truncate">{doc.phone || 'N/A'}</span>
+                  <span className="truncate">{doc.phone || 'Phone: N/A'}</span>
                 </span>
                 <span className="inline-flex items-center gap-1">
                   <Sms size={14} className="text-gray-400" /> 
-                  <span className="truncate">{doc.email || 'N/A'}</span>
+                  <span className="truncate">{doc.email || 'Email: N/A'}</span>
                 </span>
               </div>
             </div>

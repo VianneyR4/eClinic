@@ -7,6 +7,7 @@ use App\Models\QueueItem;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
+use PHPOpenSourceSaver\JWTAuth\Facades\JWTAuth;
 
 class QueueApiTest extends TestCase
 {
@@ -16,11 +17,11 @@ class QueueApiTest extends TestCase
     {
         parent::setUp();
         
-        // Create authenticated user
+        // Create authenticated user and JWT token
         $this->user = User::factory()->create([
             'email_verified_at' => now(),
         ]);
-        $this->token = $this->user->createToken('test-token')->plainTextToken;
+        $this->token = JWTAuth::fromUser($this->user);
     }
 
     public function test_can_create_queue_item(): void
