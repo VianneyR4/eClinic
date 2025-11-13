@@ -18,7 +18,7 @@ interface Patient {
   phone?: string;
   idNumber?: string;
   photo?: string;
-  address?: string;
+  address?: string | { street?: string; city?: string; state?: string; zip_code?: string; zipCode?: string };
 }
 
 interface Doctor {
@@ -31,7 +31,7 @@ interface Doctor {
   idNumber?: string;
   photo?: string;
   specialty?: string;
-  address?: string;
+  address?: string | { street?: string; city?: string; state?: string; zip_code?: string; zipCode?: string };
 }
 
 interface SearchDropdownProps {
@@ -50,6 +50,21 @@ export default function SearchDropdown({ query, onClose }: SearchDropdownProps) 
   const [showDoctorForm, setShowDoctorForm] = useState(false);
   const [newPatient, setNewPatient] = useState<any>(null);
   const [showAppointmentModal, setShowAppointmentModal] = useState(false);
+
+  // Format address whether it's a string or an object
+  const getAddressText = (
+    address: string | { street?: string; city?: string; state?: string; zip_code?: string; zipCode?: string } | undefined
+  ): string => {
+    if (!address) return '';
+    if (typeof address === 'string') return address;
+    const parts = [
+      address.street,
+      address.city,
+      address.state,
+      address.zipCode ?? address.zip_code,
+    ].filter(Boolean) as string[];
+    return parts.length ? parts.join(', ') : '';
+  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -124,6 +139,8 @@ export default function SearchDropdown({ query, onClose }: SearchDropdownProps) 
           photo: patient.photo,
         });
         setShowAppointmentModal(true);
+        // Ensure the page reflects the new data
+        try { router.refresh(); } catch {}
       }
     } catch (error) {
       console.error('Error fetching patient:', error);
@@ -137,6 +154,7 @@ export default function SearchDropdown({ query, onClose }: SearchDropdownProps) 
           photo: patientData.data.photo,
         });
         setShowAppointmentModal(true);
+        try { router.refresh(); } catch {}
       }
     }
   };
@@ -160,7 +178,7 @@ export default function SearchDropdown({ query, onClose }: SearchDropdownProps) 
         {showEmptyState && (
           <div className="p-6">
             <div className="text-center mb-6">
-              <p className="text-sm text-gray-600 mb-4">No results found for "{query}"</p>
+              <p className="text-sm text-gray-600 mb-4">No results found for &quot;{query}&quot;</p>
               <div className="grid grid-cols-2 gap-4">
                 <button
                   onClick={() => {
@@ -233,12 +251,7 @@ export default function SearchDropdown({ query, onClose }: SearchDropdownProps) 
                           </td>
                           <td className="px-4 py-3">
                             <div className="text-sm font-medium text-gray-900">{patient.fullName}</div>
-                            {patient.address && (
-                              <div className="text-xs text-gray-500 flex items-center gap-1 mt-1">
-                                <Location size={12} />
-                                {patient.address}
-                              </div>
-                            )}
+                          
                           </td>
                           <td className="px-4 py-3 text-sm text-gray-600">{patient.phone || '-'}</td>
                           <td className="px-4 py-3 text-sm text-gray-600">{patient.email || '-'}</td>
@@ -330,12 +343,6 @@ export default function SearchDropdown({ query, onClose }: SearchDropdownProps) 
                             {doctor.specialty && (
                               <div className="text-xs text-gray-500 mt-1">{doctor.specialty}</div>
                             )}
-                            {doctor.address && (
-                              <div className="text-xs text-gray-500 flex items-center gap-1 mt-1">
-                                <Location size={12} />
-                                {doctor.address}
-                              </div>
-                            )}
                           </td>
                           <td className="px-4 py-3 text-sm text-gray-600">{doctor.phone || '-'}</td>
                           <td className="px-4 py-3 text-sm text-gray-600">{doctor.email || '-'}</td>
@@ -399,6 +406,7 @@ export default function SearchDropdown({ query, onClose }: SearchDropdownProps) 
             doctor={undefined}
             onSave={() => {
               setShowDoctorForm(false);
+              try { router.refresh(); } catch {}
             }}
             onCancel={() => setShowDoctorForm(false)}
           />

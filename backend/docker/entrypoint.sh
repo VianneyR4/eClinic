@@ -125,6 +125,10 @@ php artisan migrate --force
 echo "🌱 Running database seeders..."
 php artisan db:seed --force || true
 
+# Explicitly run AdminSeeder to ensure admin user is created
+echo "👤 Seeding admin user..."
+php artisan db:seed --class=AdminSeeder --force || true
+
 # Clear and cache config
 echo "🧹 Optimizing application..."
 php artisan config:clear || true

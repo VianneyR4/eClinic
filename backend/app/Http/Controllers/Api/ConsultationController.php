@@ -87,7 +87,7 @@ class ConsultationController extends Controller
 
             $items = Consultation::where('patient_id', $patient->id)
                 ->orderByDesc('created_at')
-                ->with(['doctor:id,first_name,last_name,name,email'])
+                ->with(['doctor:id,first_name,last_name,name,email,phone,specialty,photo'])
                 ->get();
 
             return response()->json([

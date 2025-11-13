@@ -116,7 +116,7 @@ class PatientService
             'date_of_birth' => 'nullable|date',
             'birthday' => 'nullable|date',
             'blood_group' => 'nullable|string|in:O+,O-,A+,A-,B+,B-,AB+,AB-',
-            'gender' => 'nullable|string|in:Male,Female,Other',
+            'gender' => 'nullable|string|in:Male,Female',
             'address' => 'nullable|array',
             'address.street' => 'nullable|string|max:255',
             'address.city' => 'nullable|string|max:255',

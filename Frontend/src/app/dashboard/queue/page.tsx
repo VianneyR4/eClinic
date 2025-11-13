@@ -97,7 +97,7 @@ export default function QueuePage() {
 
   const columns = [
     { id: 'waiting', label: 'Waiting' },
-    { id: 'in_progress', label: 'In Progress' },
+    { id: 'in_progress', label: 'Under Consultation' },
     { id: 'done', label: 'Done' },
     { id: 'canceled', label: 'Canceled' },
   ];
@@ -135,7 +135,7 @@ export default function QueuePage() {
             >
               {/* Column header */}
               <div className="p-4 border-b border-gray-200">
-                <h2 className="text-sm font-semibold text-gray-700">{col.label}</h2>
+                <h2 className="text-sm font-semibold text-primary">{col.label}</h2>
                 <p className="text-xs text-gray-500 mt-1">
                   {items.length} patient{items.length !== 1 && 's'}
                 </p>
@@ -156,7 +156,7 @@ export default function QueuePage() {
                       <div
                         key={item.id}
                         className={`border border-gray-200 rounded-md p-4 hover:shadow-md transition ${
-                          isCurrent ? 'border-gray-400' : ''
+                          isCurrent ? 'border-primary' : ''
                         }`}
                       >
                         {/* Patient info */}
@@ -169,7 +169,7 @@ export default function QueuePage() {
                             />
                           ) : (
                             <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
-                              <span className="text-gray-600 font-medium text-sm">
+                              <span className="text-primary font-medium text-sm">
                                 {item.patient.firstName[0]}
                                 {item.patient.lastName[0]}
                               </span>

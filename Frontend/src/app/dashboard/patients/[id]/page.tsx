@@ -2,6 +2,8 @@
 
 import { useMemo, useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Image from "next/image";
+import { getVitalSignColor, formatVitalSignValue } from "@/utils/vitalSigns";
 import {
   Call,
   Edit,
@@ -10,6 +12,7 @@ import {
   User,
   Star,
   Book,
+  Sms,
   Activity,
   Heart,
   HeartCircle,
@@ -20,12 +23,30 @@ import {
   DocumentDownload,
   Microphone2,
   Stop,
+  ArrowRotateLeft,
   TickCircle,
   DocumentText,
   Health,
   ArrowLeft,
 } from "iconsax-react";
 import { apiService } from "@/services/api";
+import PatientForm from "@/components/PatientForm";
+import SlideOver from "@/components/SlideOver";
+import patientBg from "@/assets/patient_bg.png";
+
+// Helper function to format dates as "Thu, 27 Mar 2025"
+const formatDate = (date: string | Date | null | undefined): string => {
+  if (!date) return "N/A";
+  try {
+    const d = typeof date === 'string' ? new Date(date) : date;
+    if (isNaN(d.getTime())) return "N/A";
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return `${days[d.getDay()]}, ${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+  } catch {
+    return "N/A";
+  }
+};
 
 export default function PatientDetailPage() {
   const params = useParams();
@@ -74,6 +95,9 @@ export default function PatientDetailPage() {
   const [activeTab, setActiveTab] = useState<"history" | "new">("history");
   const initials = `${patient.firstName?.[0] || "N"}${patient.lastName?.[0] || "A"}`.toUpperCase();
 
+  // Edit patient state
+  const [showEditForm, setShowEditForm] = useState<boolean>(false);
+
   // Consultations state
   const [consultations, setConsultations] = useState<any[]>([]);
   const [loadingConsults, setLoadingConsults] = useState<boolean>(false);
@@ -118,49 +142,61 @@ export default function PatientDetailPage() {
             </div>
             <div className="flex-1 min-w-0">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <div className="space-y-1">
-                  <p className="text-xs text-gray-500">ID Number</p>
-                  <p className="text-sm font-medium text-gray-900 break-all">{patient.id}</p>
+                <div>
+                  <div className="space-y-1">
+                    <p className="text-lg text-gray700 text-primary">#{patient.id}</p>
+                    <p className="text-lg font-bold text-gray-900 truncate">{patient.firstName} {patient.lastName}</p>
+                    <p className="text-sm font-small text-gray-500 truncate">{patient.address || "Address: N/A"}</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2" style={{ marginTop: "10px"}}>
+                    <div className="flex items-center gap-2 text-sm text-gray-700" >
+                      <Call size={15} className="text-gray500"/>
+                      <span className="text-gray-500">Phone:</span>
+                      <span className="font-medium">{patient.phone || "N/A"}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-gray-700">
+                      <Calendar size={15} className="text-gray500"/>
+                      <span className="text-gray-500">Last visited:</span>
+                      <span className="font-medium">{formatDate(patient.lastVisited)}</span>
+                    </div>         
+                  </div>     
                 </div>
-                <div className="space-y-1">
-                  <p className="text-xs text-gray-500">Names</p>
-                  <p className="text-sm font-medium text-gray-900 truncate">{patient.firstName} {patient.lastName}</p>
+
+
+                <div className="flex" style={{ position: "relative", padding: "0", height: "100%"}}>
+                  <Image 
+                    src={patientBg} 
+                    alt="Patient Background" 
+                    className="object-contain"
+                    style={{ position: "absolute", height: "128%", marginLeft: "-80px", marginTop: "-16px" }}
+                  />
                 </div>
-                <div className="space-y-1">
-                  <p className="text-xs text-gray-500">Address</p>
-                  <p className="text-sm font-medium text-gray-900 truncate">{patient.address || "N/A"}</p>
-                </div>
+
               </div>
 
-              <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <div className="flex items-center gap-2 text-sm text-gray-700">
-                  <span className="text-gray-500">Phone:</span>
-                  <span className="font-medium">{patient.phone || "N/A"}</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm text-gray-700">
-                  <span className="text-gray-500">Last visited:</span>
-                  <span className="font-medium">{patient.lastVisited ? new Date(patient.lastVisited).toLocaleDateString(undefined, { day: "2-digit", month: "short", year: "numeric" }) : "N/A"}</span>
-                </div>
-              </div>
             </div>
           </div>
 
           {/* Right: action buttons */}
           <div className="flex flex-col items-stretch justify-between w-full md:w-48">
             <div className="grid grid-cols-3 gap-2">
-              <button className="p-2 border border-gray-200 rounded-md hover:bg-gray-50 flex items-center justify-center">
+              <button className="p-2 w-12 h-12 border border-gray-200 rounded-full hover:bg-gray-50 flex items-center justify-center">
                 <Call size={18} className="text-primary" />
               </button>
-              <button className="p-2 border border-gray-200 rounded-md hover:bg-gray-50 flex items-center justify-center">
+              <button 
+                onClick={() => setShowEditForm(true)}
+                className="p-2  w-12 h-12 border border-gray-200 rounded-full hover:bg-gray-50 flex items-center justify-center"
+              >
                 <Edit size={18} className="text-gray-700" />
               </button>
-              <button className="p-2 border border-gray-200 rounded-md hover:bg-red-50 flex items-center justify-center">
+              <button className="p-2  w-12 h-12 border border-gray-200 rounded-full hover:bg-red-50 flex items-center justify-center">
                 <Trash size={18} className="text-red-600" />
               </button>
             </div>
             <button className="mt-2 w-full flex items-center justify-center gap-2 bg-primary text-white text-sm rounded-md py-2 hover:bg-opacity-90">
               <Calendar size={16} className="text-white" />
-              <span>New appointment</span>
+              <span>New consultation</span>
             </button>
           </div>
         </div>
@@ -181,10 +217,10 @@ export default function PatientDetailPage() {
               {/* 2 columns */}
               <div className="grid pb-2 grid-cols-1 sm:grid-cols-2 gap-4">
                 {[
-                  { label: "Birthday", value: patient.birthday || "N/A", icon: <Calendar size={16} className="text-gray-400" /> },
+                  { label: "Birthday", value: formatDate(patient.birthday || patientRaw?.date_of_birth), icon: <Calendar size={16} className="text-gray-400" /> },
                   { label: "Blood Group", value: patient.bloodGroup || "N/A", icon: <HeartCircle size={16} className="text-gray-400" /> },
                   { label: "Gender", value: patient.gender || "N/A", icon: <User size={16} className="text-gray-400" /> },
-                  { label: "Email", value: patient.email || "N/A", icon: <DocumentDownload size={16} className="text-gray-400" /> },
+                  { label: "Email", value: patient.email || "N/A", icon: <Sms size={16} className="text-gray-400" /> },
                 ].map((item) => (
                   <div key={item.label} className="flex items-center gap-3">
                     <div className="ml-auto sm:ml-0 order-2 sm:order-1 w-8 h-8 rounded-md bg-gray-50 border border-gray-200 flex items-center justify-center">
@@ -192,7 +228,7 @@ export default function PatientDetailPage() {
                     </div>
                     <div className="order-1 sm:order-2">
                       <p className="text-xs text-gray-500">{item.label}</p>
-                      <p className="text-sm font-medium text-gray-900">{item.value}</p>
+                      <p className="text-sm font-medium text-gray-900">{item.value === "N/A" ? `${item.label}: N/A` : item.value}</p>
                     </div>
                   </div>
                 ))}
@@ -212,31 +248,35 @@ export default function PatientDetailPage() {
             <div className="p-4">
               {/* 3 columns */}
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                {(() => {
-                  const vs = patient.vitalSigns || {};
-                  const items = [
-                    { label: "Blood Pressure", value: vs.blood_pressure ? `${vs.blood_pressure}` : "N/A", ok: !!vs.blood_pressure, icon: <Activity size={16} className="text-gray-400" /> },
-                    { label: "Heart Rate", value: vs.heart_rate != null ? `${vs.heart_rate} bpm` : "N/A", ok: vs.heart_rate != null, icon: <Heart size={16} className="text-gray-400" /> },
-                    { label: "SPO2", value: vs.spo2 != null ? `${vs.spo2}%` : "N/A", ok: vs.spo2 != null, icon: <Activity size={16} className="text-gray-400" /> },
-                    { label: "Temperature", value: vs.temperature != null ? `${vs.temperature}°C` : "N/A", ok: vs.temperature != null, icon: <Activity size={16} className="text-gray-400" /> },
-                    { label: "Respiratory rate", value: vs.respiratory_rate != null ? `${vs.respiratory_rate} bpm` : "N/A", ok: vs.respiratory_rate != null, icon: <Activity size={16} className="text-gray-400" /> },
-                    { label: "Weight", value: vs.weight != null ? `${vs.weight} kg` : "N/A", ok: vs.weight != null, icon: <Activity size={16} className="text-gray-400" /> },
-                  ];
-                  return items;
-                })().map((v) => (
-                  <div key={v.label} className="flex items-center gap-3">
-                    <div className="ml-auto sm:ml-0 order-2 sm:order-1 w-8 h-8 rounded-md bg-gray-50 border border-gray-200 flex items-center justify-center">
-                      {v.icon}
-                    </div>
-                    <div className="order-1 sm:order-2 flex-1">
-                      <p className="text-xs text-gray-500">{v.label}</p>
-                      <div className="flex items-center gap-2">
-                        <span className={`w-2.5 h-2.5 rounded-full ${v.ok ? "bg-green-500" : "bg-red-500"}`} />
-                        <p className="text-sm font-medium text-gray-900">{v.value}</p>
+                {[
+                  { type: 'blood_pressure', label: 'Blood Pressure', icon: <Activity size={16} className="text-gray-400" /> },
+                  { type: 'heart_rate', label: 'Heart Rate', icon: <Heart size={16} className="text-gray-400" /> },
+                  { type: 'spo2', label: 'SPO2', icon: <Activity size={16} className="text-gray-400" /> },
+                  { type: 'temperature', label: 'Temperature', icon: <Activity size={16} className="text-gray-400" /> },
+                  { type: 'respiratory_rate', label: 'Respiratory Rate', icon: <Activity size={16} className="text-gray-400" /> },
+                  { type: 'weight', label: 'Weight', icon: <Activity size={16} className="text-gray-400" /> },
+                ].map(({ type, label, icon }) => {
+                  const value = patient.vitalSigns?.[type];
+                  const displayValue = formatVitalSignValue(type, value);
+                  const color = getVitalSignColor(type, value);
+                  
+                  return (
+                    <div key={type} className="flex items-center gap-3">
+                      <div className="ml-auto sm:ml-0 order-2 sm:order-1 w-8 h-8 rounded-md bg-gray-50 border border-gray-200 flex items-center justify-center">
+                        {icon}
+                      </div>
+                      <div className="order-1 sm:order-2 flex-1">
+                        <p className="text-xs text-gray-500">{label}</p>
+                        <div className="flex items-center gap-2">
+                          <span className={`w-2.5 h-2.5 rounded-full ${color}`} />
+                          <p className="text-sm font-medium text-gray-900">
+                            {displayValue === 'N/A' ? `${label}: N/A` : displayValue}
+                          </p>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -245,7 +285,7 @@ export default function PatientDetailPage() {
 
 
       {/* Switch Tabs */}
-      <div className="bg-white border border-gray-200 rounded-lg">
+      <div className="">
         <div className="px-4 pt-3">
           <div className="flex items-center gap-6">
             <button
@@ -258,7 +298,7 @@ export default function PatientDetailPage() {
               className={`pb-2 text-sm font-medium ${activeTab === "new" ? "text-primary border-b-2 border-primary" : "text-gray-600"}`}
               onClick={() => setActiveTab("new")}
             >
-              New appointment
+              New consultation
             </button>
           </div>
         </div>
@@ -280,136 +320,651 @@ export default function PatientDetailPage() {
 
       {/* Consultation Detail Modal */}
       {detailOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/30" onClick={() => setDetailOpen(false)} />
-          <div className="relative bg-white w-full max-w-xl mx-4 rounded-lg border border-gray-200 shadow-lg">
-            <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-gray-800">Consultation detail</h3>
-              <button onClick={() => setDetailOpen(false)} className="text-gray-500 text-sm">Close</button>
-            </div>
-            <div className="p-4 space-y-3">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <p className="text-xs text-gray-500">Date & Time</p>
-                  <p className="text-sm font-medium text-gray-900">{detailItem?.created_at ? new Date(detailItem.created_at).toLocaleString() : 'N/A'}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500">Doctor</p>
-                  <p className="text-sm font-medium text-gray-900">{(() => {
-                    const d = detailItem?.doctor || {};
-                    const fromNames = (d.first_name || '') + ' ' + (d.last_name || '');
-                    const full = fromNames.trim() || d.name || (detailItem?.doctor_id ? `#${detailItem.doctor_id}` : 'N/A');
-                    return full || 'N/A';
-                  })()}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500">Patient</p>
-                  <p className="text-sm font-medium text-gray-900">{patient.firstName} {patient.lastName}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500">Title</p>
-                  <p className="text-sm font-medium text-gray-900">{detailItem?.title || 'N/A'}</p>
-                </div>
-              </div>
-              <div>
-                <p className="text-xs text-gray-500">Report</p>
-                <p className="text-sm text-gray-800 whitespace-pre-wrap">{detailItem?.report || 'N/A'}</p>
-              </div>
-              {/* Vitals in detail if present */}
-              {detailItem?.vitals && (
-                <div>
-                  <p className="text-xs text-gray-500 mb-2">Vital Signs</p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {[
-                      { label: 'Blood Pressure', value: detailItem.vitals?.blood_pressure },
-                      { label: 'Heart Rate', value: detailItem.vitals?.heart_rate != null ? `${detailItem.vitals.heart_rate} bpm` : null },
-                      { label: 'SPO2', value: detailItem.vitals?.spo2 != null ? `${detailItem.vitals.spo2}%` : null },
-                      { label: 'Temperature', value: detailItem.vitals?.temperature != null ? `${detailItem.vitals.temperature}°C` : null },
-                      { label: 'Respiratory rate', value: detailItem.vitals?.respiratory_rate != null ? `${detailItem.vitals.respiratory_rate} bpm` : null },
-                      { label: 'Weight', value: detailItem.vitals?.weight != null ? `${detailItem.vitals.weight} kg` : null },
-                    ].map((v) => (
-                      <div key={v.label} className="flex items-center justify-between border border-gray-100 rounded-md px-3 py-2">
-                        <span className="text-xs text-gray-500">{v.label}</span>
-                        <span className="text-sm font-medium text-gray-900">{v.value ?? 'N/A'}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+        <ConsultationDetailModal
+          detailItem={detailItem}
+          patient={patient}
+          patientRaw={patientRaw}
+          onClose={() => setDetailOpen(false)}
+        />
       )}
+
+      {/* Edit Patient Modal */}
+      <SlideOver
+        open={showEditForm}
+        onClose={() => setShowEditForm(false)}
+        title="Edit Patient"
+        widthClass="max-w-lg"
+      >
+        <div className="">
+          <PatientForm
+            patient={patientRaw}
+            onSave={async (data) => {
+              if (data) {
+                const res = await apiService.getPatient(patientId);
+                if (res?.success) setPatientRaw(res.data);
+                // Ensure the page picks up latest server data
+                router.refresh();
+              }
+              setShowEditForm(false);
+              // Safety: refresh even if no data returned
+              router.refresh();
+            }}
+            onCancel={() => setShowEditForm(false)}
+          />
+        </div>
+      </SlideOver>
     </div>
   );
 }
 
+function ConsultationDetailModal({ detailItem, patient, patientRaw, onClose }: { detailItem: any; patient: any; patientRaw: any; onClose: () => void }) {
+  const [showEmailDropdown, setShowEmailDropdown] = useState(false);
+  const [emailAddress, setEmailAddress] = useState(patient.email || '');
+  const [sendingEmail, setSendingEmail] = useState(false);
+
+  const doctorName = detailItem?.doctor 
+    ? `${detailItem.doctor.first_name || ''} ${detailItem.doctor.last_name || ''}`.trim() || detailItem.doctor.name || `#${detailItem.doctor_id || 'N/A'}`
+    : (detailItem?.doctor_id ? `#${detailItem.doctor_id}` : 'Doctor: N/A');
+
+  const handleDownload = () => {
+    const reportHtml = generateReportHtml();
+    const blob = new Blob([reportHtml], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `consultation-${detailItem?.id || 'report'}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handlePrint = () => {
+    const reportHtml = generateReportHtml();
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(reportHtml);
+      printWindow.document.close();
+      printWindow.onload = () => {
+        printWindow.print();
+      };
+    }
+  };
+
+  const handleSendEmail = async () => {
+    if (!emailAddress) {
+      alert('Please enter an email address');
+      return;
+    }
+    setSendingEmail(true);
+    try {
+      // TODO: Implement email sending API call
+      alert(`In the future, consultation details will be sent to ${emailAddress} via email. SMS functionality will also be available.`);
+      setShowEmailDropdown(false);
+    } catch (error) {
+      alert('Failed to send email. Please try again.');
+    } finally {
+      setSendingEmail(false);
+    }
+  };
+
+  const generateReportHtml = () => {
+    const escapeHtml = (s: any) => {
+      if (s == null) return 'N/A';
+      const str = String(s);
+      return str.replace(/[&<>"]+/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c] as string));
+    };
+    const vitals = detailItem?.vitals || patientRaw?.vital_signs || {};
+    const reportText = detailItem?.report || 'N/A';
+    
+    return `
+      <html>
+      <head>
+        <title>Consultation Report</title>
+        <style>
+          body{font-family:ui-sans-serif,system-ui; padding:24px; color:#111827}
+          h1{font-size:18px;margin:0 0 8px;font-weight:700}
+          h2{font-size:14px;margin:16px 0 8px;font-weight:600;border-bottom:1px solid #E5E7EB;padding-bottom:4px}
+          .grid{display:grid;gap:8px}
+          .two{grid-template-columns:1fr 1fr}
+          .card{border:1px solid #E5E7EB;border-radius:8px;padding:12px;margin-top:8px}
+          .muted{color:#6B7280;font-size:12px}
+          .kv{display:flex;justify-content:space-between;margin:4px 0}
+          header{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #E5E7EB;padding-bottom:8px;margin-bottom:10px}
+          .brand{font-weight:700;color:#111827}
+          @media print { .no-print{display:none} }
+        </style>
+      </head>
+      <body>
+        <header>
+          <div>
+            <div class="brand">eClinic</div>
+            <div class="muted">Consultation Report • ${formatDate(detailItem?.created_at)}</div>
+          </div>
+        </header>
+
+        <h2>Patient Info</h2>
+        <div class="grid two">
+          <div class="kv"><span>ID Number</span><strong>${escapeHtml(patient.id || patientRaw?.id || 'N/A')}</strong></div>
+          <div class="kv"><span>Names</span><strong>${escapeHtml(`${patient.firstName} ${patient.lastName}`)}</strong></div>
+          <div class="kv"><span>Address</span><strong>${escapeHtml(patient.address || patientRaw?.address || 'N/A')}</strong></div>
+          <div class="kv"><span>Phone</span><strong>${escapeHtml(patient.phone || patientRaw?.phone || 'N/A')}</strong></div>
+        </div>
+
+        <h2>Consultation Details</h2>
+        <div class="grid two">
+          <div class="kv"><span>Date & Time</span><strong>${formatDate(detailItem?.created_at)}</strong></div>
+          <div class="kv"><span>Doctor</span><strong>${escapeHtml(doctorName)}</strong></div>
+          <div class="kv"><span>Title</span><strong>${escapeHtml(detailItem?.title || 'N/A')}</strong></div>
+        </div>
+
+        <h2>About Patient</h2>
+        <div class="grid two">
+          <div class="kv"><span>Birthday</span><strong>${escapeHtml(formatDate(patientRaw?.birthday || patientRaw?.date_of_birth))}</strong></div>
+          <div class="kv"><span>Blood Group</span><strong>${escapeHtml(patientRaw?.blood_group || patient.bloodGroup || 'N/A')}</strong></div>
+          <div class="kv"><span>Gender</span><strong>${escapeHtml(patientRaw?.gender || patient.gender || 'N/A')}</strong></div>
+          <div class="kv"><span>Email</span><strong>${escapeHtml(patientRaw?.email || patient.email || 'N/A')}</strong></div>
+        </div>
+
+        <h2>Vital Signs</h2>
+        <div class="grid two">
+          <div class="kv"><span>Blood Pressure</span><strong>${escapeHtml(vitals.blood_pressure || 'N/A')}</strong></div>
+          <div class="kv"><span>Heart Rate</span><strong>${escapeHtml(vitals.heart_rate != null ? `${vitals.heart_rate} bpm` : 'N/A')}</strong></div>
+          <div class="kv"><span>SPO2</span><strong>${escapeHtml(vitals.spo2 != null ? `${vitals.spo2}%` : 'N/A')}</strong></div>
+          <div class="kv"><span>Temperature</span><strong>${escapeHtml(vitals.temperature != null ? `${vitals.temperature}°C` : 'N/A')}</strong></div>
+          <div class="kv"><span>Respiratory Rate</span><strong>${escapeHtml(vitals.respiratory_rate != null ? `${vitals.respiratory_rate} bpm` : 'N/A')}</strong></div>
+          <div class="kv"><span>Weight</span><strong>${escapeHtml(vitals.weight != null ? `${vitals.weight} kg` : 'N/A')}</strong></div>
+        </div>
+
+        <h2>Report</h2>
+        <div class="card">
+          <div class="muted" style="white-space:pre-wrap">${escapeHtml(reportText)}</div>
+        </div>
+      </body>
+      </html>
+    `;
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/30" onClick={onClose} />
+
+      <div className="relative bg-white w-full max-w-4xl mx-4 rounded-lg border border-gray-200 shadow-sm overflow-hidden flex flex-col" style={{height: "90vh"}}>
+        
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gray-50">
+          <h3 className="text-lg font-semibold tracking-tight">Consultation Report</h3>
+          <div className="flex items-center gap-2">
+            {/* Email Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setShowEmailDropdown(!showEmailDropdown)}
+                className="flex items-center gap-2 px-3 py-1.5 text-sm border border-gray-300 rounded-md hover:bg-gray-100 transition"
+              >
+                <DocumentDownload size={16} />
+                Send to Email
+              </button>
+              {showEmailDropdown && (
+                <>
+                  <div className="fixed inset-0 z-0" onClick={() => setShowEmailDropdown(false)} />
+                  <div className="absolute right-0 mt-1 w-80 bg-white border border-gray-200 rounded-md shadow-lg z-10 p-3 space-y-2">
+                    <div>
+                      <label className="block text-xs text-gray-600 mb-1">Email Address</label>
+                      <input
+                        type="email"
+                        value={emailAddress}
+                        onChange={(e) => setEmailAddress(e.target.value)}
+                        className="w-full border border-gray-200 rounded-md px-2 py-2 text-sm"
+                        placeholder="Enter email address"
+                      />
+                    </div>
+                    <div className="text-xs text-gray-500 italic">
+                      Note: SMS delivery will be supported soon.
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleSendEmail}
+                        disabled={sendingEmail || !emailAddress}
+                        className="flex-1 px-3 py-1.5 text-xs bg-primary text-white rounded-md hover:bg-opacity-90 disabled:opacity-50"
+                      >
+                        {sendingEmail ? "Sending..." : "Send"}
+                      </button>
+                      <button
+                        onClick={() => setShowEmailDropdown(false)}
+                        className="px-3 py-1.5 text-xs border border-gray-300 rounded-md hover:bg-gray-50"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+  
+            <button
+              onClick={handleDownload}
+              className="flex items-center gap-2 px-3 py-1.5 text-sm border border-gray-300 rounded-md hover:bg-gray-100 transition"
+            >
+              <DocumentDownload size={16} />
+              Download
+            </button>
+  
+            <button
+              onClick={handlePrint}
+              className="flex items-center gap-2 px-3 py-1.5 text-sm border border-gray-300 rounded-md hover:bg-gray-100 transition"
+            >
+              <DocumentText size={16} />
+              Print
+            </button>
+  
+            <button
+              onClick={onClose}
+              className="text-gray-500 hover:text-gray-700 text-sm"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+  
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-6 text-gray-800">
+ 
+
+          <div id="printable-report" className="p-6 space-y-6">
+              {/* Report Header with QR Code */}
+              <div className="flex items-start justify-between pb-4 border-b border-gray-200">
+              <div>
+                  <div className="flex items-center gap-2 mb-2">
+                  <Health size={32} className="text-gray-700" />
+                  <div>
+                      <div className="text-2xl font-bold text-gray-800">eClinic</div>
+                      <div className="text-xs text-gray-500">Healthcare Management System</div>
+                  </div>
+                  </div>
+                  <div className="text-sm text-gray-600 mt-2">
+                  <div>TrustCare Clinic, Musanze</div>
+                  <div>Phone: +250 788 000 000</div>
+                  <div className="font-medium mt-1">
+                      Report Date: {formatDate(detailItem?.created_at)} at{" "}
+                      {detailItem?.created_at ? new Date(detailItem.created_at).toLocaleTimeString() : 'N/A'}
+                  </div>
+                  </div>
+              </div>
+              <div className="text-center">
+                  <div className="w-24 h-24 border border-gray-300 rounded-md flex items-center justify-center bg-white mb-1">
+                  <div className="text-center text-xs text-gray-600">
+                      QR CODE
+                      <div className="text-[10px] mt-1">
+                      {patient.id || patientRaw?.id || "N/A"}
+                      </div>
+                  </div>
+                  </div>
+                  <div className="text-xs text-gray-500">Scan for details</div>
+              </div>
+              </div>
+
+              {/* Patient Information */}
+              <div className="border border-gray-200 rounded-md p-4 bg-white">
+              <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                  <User size={16} className="text-gray-700" />
+                  Patient Information
+              </h4>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                  <span className="text-gray-600">ID Number:</span>{" "}
+                  <span className="font-medium">{patient.id || patientRaw?.id || 'ID Number: N/A'}</span>
+                  </div>
+                  <div>
+                  <span className="text-gray-600">Name:</span>{" "}
+                  <span className="font-medium">{patient.firstName} {patient.lastName}</span>
+                  </div>
+                  <div>
+                  <span className="text-gray-600">Phone:</span>{" "}
+                  <span className="font-medium">{patient.phone || patientRaw?.phone || 'Phone: N/A'}</span>
+                  </div>
+                  <div>
+                  <span className="text-gray-600">Address:</span>{" "}
+                  <span className="font-medium">{patient.address || patientRaw?.address || 'Address: N/A'}</span>
+                  </div>
+              </div>
+              </div>
+
+              {/* Consultation Details */}
+              <div className="border border-gray-200 rounded-md p-4 bg-white">
+              <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                  <Calendar size={16} className="text-gray-700" />
+                  Consultation Details
+              </h4>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                  <span className="text-gray-600">Date & Time:</span>{" "}
+                  <span className="font-medium">{formatDate(detailItem?.created_at)}</span>
+                  </div>
+                  <div>
+                  <span className="text-gray-600">Doctor:</span>{" "}
+                  <span className="font-medium">{doctorName}</span>
+                  </div>
+                  <div>
+                  <span className="text-gray-600">Diagnosis:</span>{" "}
+                  <span className="font-medium">{detailItem?.title || 'Diagnosis: N/A'}</span>
+                  </div>
+              </div>
+              </div>
+
+              {/* About Section */}
+              <div className="border border-gray-200 rounded-md p-4 bg-white">
+              <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                  <Star size={16} className="text-gray-700" />
+                  About Patient
+              </h4>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                  <span className="text-gray-600">Birthday:</span>{" "}
+                  <span className="font-medium">{formatDate(patientRaw?.birthday || patientRaw?.date_of_birth)}</span>
+                  </div>
+                  <div>
+                  <span className="text-gray-600">Blood Group:</span>{" "}
+                  <span className="font-medium">{patientRaw?.blood_group || patient.bloodGroup || 'Blood Group: N/A'}</span>
+                  </div>
+                  <div>
+                  <span className="text-gray-600">Gender:</span>{" "}
+                  <span className="font-medium">{patientRaw?.gender || patient.gender || 'Gender: N/A'}</span>
+                  </div>
+                  <div>
+                  <span className="text-gray-600">Email:</span>{" "}
+                  <span className="font-medium">{patientRaw?.email || patient.email || 'Email: N/A'}</span>
+                  </div>
+              </div>
+              </div>
+
+              {/* Vital Signs */}
+              <div className="border border-gray-200 rounded-md p-4 bg-white">
+              <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                  <Activity size={16} className="text-gray-700" />
+                  Vital Signs
+              </h4>
+              <div className="grid grid-cols-3 gap-3 text-sm">
+                  {(() => {
+                  const vitals = detailItem?.vitals || patientRaw?.vital_signs || {};
+                  const vitalItems = [
+                      { label: 'Blood Pressure', value: vitals.blood_pressure, hasValue: !!vitals.blood_pressure },
+                      { label: 'Heart Rate', value: vitals.heart_rate != null ? `${vitals.heart_rate} bpm` : null, hasValue: vitals.heart_rate != null },
+                      { label: 'SPO2', value: vitals.spo2 != null ? `${vitals.spo2}%` : null, hasValue: vitals.spo2 != null },
+                      { label: 'Temperature', value: vitals.temperature != null ? `${vitals.temperature}°C` : null, hasValue: vitals.temperature != null },
+                      { label: 'Respiratory Rate', value: vitals.respiratory_rate != null ? `${vitals.respiratory_rate} bpm` : null, hasValue: vitals.respiratory_rate != null },
+                      { label: 'Weight', value: vitals.weight != null ? `${vitals.weight} kg` : null, hasValue: vitals.weight != null },
+                  ];
+                  
+                  if (vitalItems.every(v => !v.hasValue)) {
+                      return <div className="col-span-3 text-gray-500">No vital signs data available</div>;
+                  }
+                  
+                  return vitalItems.map((v, i) => (
+                      <div key={i} className="flex items-center gap-2">
+                          <span
+                          className={`w-2 h-2 rounded-full ${
+                              v.hasValue ? "bg-green-500" : "bg-gray-400"
+                          }`}
+                          ></span>
+                          <div>
+                          <span className="text-gray-600 text-xs">{v.label}:</span>{" "}
+                          <span className="font-medium">{v.value || `${v.label}: N/A`}</span>
+                          </div>
+                      </div>
+                  ));
+                  })()}
+              </div>
+              </div>
+
+              {/* Consultation Report */}
+              <div>
+              <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                  <DocumentText size={16} className="text-gray-700" />
+                  Consultation Report
+              </h4>
+              <div className="border border-gray-200 rounded-md p-4 text-sm text-gray-700 whitespace-pre-wrap">
+                  {detailItem?.report || 'Report: N/A'}
+              </div>
+              </div>
+
+              {/* Footer */}
+              <div className="pt-4 border-t border-gray-200 text-center space-y-1 text-xs text-gray-500">
+              <div>
+                  This report was generated by eClinic AI Assistant on{" "}
+                  {detailItem?.created_at ? formatDate(detailItem.created_at) : new Date().toLocaleString()}
+              </div>
+              <div>For inquiries: TrustCare Clinic – +250 788 000 000</div>
+              <div className="text-gray-400">
+                  © {new Date().getFullYear()} eClinic. All rights reserved.
+              </div>
+              </div>
+          </div>
+  
+        </div>
+      </div>
+
+    </div>
+  );
+  
+}
+
 function HistoryTable({ consultations, loading, onView }: { consultations: any[]; loading: boolean; onView: (item: any) => void }) {
   const [openRow, setOpenRow] = useState<number | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [showDateFilter, setShowDateFilter] = useState(false);
+  const itemsPerPage = 5;
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (openRow !== null) {
+        const target = event.target as HTMLElement;
+        if (!target.closest('.dropdown-container')) {
+          setOpenRow(null);
+        }
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [openRow]);
+
+  // Filter consultations
+  const filteredConsultations = useMemo(() => {
+    let filtered = [...consultations];
+    
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(c => 
+        (c.title || '').toLowerCase().includes(query) ||
+        (c.report || '').toLowerCase().includes(query) ||
+        ((c.doctor?.first_name || '') + ' ' + (c.doctor?.last_name || '')).toLowerCase().includes(query)
+      );
+    }
+    
+    if (dateFrom) {
+      filtered = filtered.filter(c => {
+        if (!c.created_at) return false;
+        const cDate = new Date(c.created_at);
+        return cDate >= new Date(dateFrom);
+      });
+    }
+    
+    if (dateTo) {
+      filtered = filtered.filter(c => {
+        if (!c.created_at) return false;
+        const cDate = new Date(c.created_at);
+        cDate.setHours(23, 59, 59, 999);
+        return cDate <= new Date(dateTo);
+      });
+    }
+    
+    return filtered;
+  }, [consultations, searchQuery, dateFrom, dateTo]);
+
+  // Pagination
+  const totalPages = Math.ceil(filteredConsultations.length / itemsPerPage);
+  const paginatedConsultations = filteredConsultations.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(1);
+    }
+  }, [totalPages, currentPage]);
+
   return (
-    <div className="p-4">
+    <div className="pt-4">
       {/* Toolbar */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
         <div className="flex items-center gap-2 w-full sm:w-auto">
           <div className="relative w-full sm:w-64">
             <SearchNormal1 size={16} className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input className="w-full border border-gray-200 rounded-md pl-7 pr-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary" placeholder="Search" />
-          </div>
-          <div className="flex items-center gap-2">
-            <input type="date" className="border border-gray-200 rounded-md px-2 py-2 text-sm" />
-            <span className="text-xs text-gray-500">to</span>
-            <input type="date" className="border border-gray-200 rounded-md px-2 py-2 text-sm" />
-          </div>
+            <input 
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="w-full border border-gray-200 rounded-md pl-7 pr-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary" 
+              placeholder="Search consultations..." 
+            />
         </div>
         <div className="relative">
-          <button className="px-3 py-2 text-sm border border-gray-200 rounded-md bg-white hover:bg-gray-50 flex items-center gap-2">
+            <button 
+              onClick={() => setShowDateFilter(!showDateFilter)}
+              className="px-3 py-2 text-sm border border-gray-200 rounded-md bg-white hover:bg-gray-50 flex items-center gap-2 w-full sm:w-auto"
+            >
             <Filter size={16} />
-            <span>Filter</span>
-            <ArrowDown2 size={14} className="text-gray-500" />
+              <span>Date Filter</span>
+              <ArrowDown2 size={14} className={`text-gray-500 transition-transform ${showDateFilter ? 'rotate-180' : ''}`} />
           </button>
+            {showDateFilter && (
+              <>
+                <div 
+                  className="fixed inset-0 z-0" 
+                  onClick={() => setShowDateFilter(false)}
+                />
+                <div className="absolute right-0 mt-1 w-80 bg-white border border-gray-200 rounded-md shadow-lg z-10 p-3 space-y-2 dropdown-container">
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">From Date</label>
+                    <input 
+                      type="date" 
+                      value={dateFrom}
+                      onChange={(e) => {
+                        setDateFrom(e.target.value);
+                        setCurrentPage(1);
+                      }}
+                      className="w-full border border-gray-200 rounded-md px-2 py-2 text-sm" 
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">To Date</label>
+                    <input 
+                      type="date" 
+                      value={dateTo}
+                      onChange={(e) => {
+                        setDateTo(e.target.value);
+                        setCurrentPage(1);
+                      }}
+                      className="w-full border border-gray-200 rounded-md px-2 py-2 text-sm" 
+                    />
+                  </div>
+                  {(dateFrom || dateTo) && (
+                    <button
+                      onClick={() => {
+                        setDateFrom("");
+                        setDateTo("");
+                        setCurrentPage(1);
+                      }}
+                      className="w-full text-xs text-red-600 hover:text-red-700"
+                    >
+                      Clear filters
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto bg-white border border-gray-200 rounded-lg">
         <table className="min-w-full text-left">
           <thead>
             <tr className="text-xs text-gray-500 border-b border-gray-200">
-              <th className="py-2 px-3 font-medium">Date & Time</th>
-              <th className="py-2 px-3 font-medium">Doctor</th>
-              <th className="py-2 px-3 font-medium">Title</th>
-              <th className="py-2 px-3 font-medium">Actions</th>
-              <th className="py-2 px-3 w-10"></th>
+              <th className="py-3 px-3 font-medium">Date & Time</th>
+              <th className="py-3 px-3 font-medium">Doctor</th>
+              <th className="py-3 px-3 font-medium">Doctor's Phone</th>
+              <th className="py-3 px-3 font-medium">Diagnosis</th>
+              <th className="py-3 px-3 font-medium">Actions</th>
+              <th className="py-3 px-3 w-10"></th>
             </tr>
           </thead>
           <tbody className="text-sm">
             {loading ? (
-              <tr><td className="py-3 px-3 text-gray-500" colSpan={5}>Loading...</td></tr>
-            ) : consultations.length === 0 ? (
-              <tr><td className="py-3 px-3 text-gray-500" colSpan={5}>No consultations found.</td></tr>
+              <tr><td className="py-3 px-3 text-gray-500" colSpan={6}>Loading...</td></tr>
+            ) : filteredConsultations.length === 0 ? (
+              <tr><td className="py-3 px-3 text-gray-500" colSpan={6}>No consultations found.</td></tr>
             ) : (
-              consultations.map((c: any) => {
+              paginatedConsultations.map((c: any) => {
                 const dt = c.created_at ? new Date(c.created_at) : null;
-                const when = dt ? dt.toLocaleString() : 'N/A';
+                const when = dt ? formatDate(dt) : 'N/A';
                 const doctorName = c.doctor?.first_name || c.doctor?.last_name
                   ? `${c.doctor?.first_name || ''} ${c.doctor?.last_name || ''}`.trim()
                   : (c.doctor?.name || `#${c.doctor_id || 'N/A'}`);
+
+                const doctorNumber = c.doctor?.phone || 'Phone: N/A';
+                const doctorSpeciality = c.doctor?.specialty || c.doctor?.speciality || 'Specialty: N/A';
+                const doctorInitials = doctorName && doctorName !== 'N/A' && doctorName !== `#${c.doctor_id || 'N/A'}`
+                  ? doctorName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
+                  : 'DR';
+                
                 return (
                   <tr key={c.id} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="py-2.5 px-3">{when}</td>
-                    <td className="py-2.5 px-3">{doctorName || 'N/A'}</td>
-                    <td className="py-2.5 px-3">{c.title || 'N/A'}</td>
+                    <td className="py-2.5 px-3">{when === "N/A" ? "Date: N/A" : when}</td>
+                    <td className="py-2.5 px-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-semibold shrink-0">
+                          {c.doctor?.photo ? (
+                            <Image 
+                              src={c.doctor.photo} 
+                              alt={doctorName}
+                              width={40}
+                              height={40}
+                              className="rounded-full object-cover"
+                            />
+                          ) : (
+                            doctorInitials
+                          )}
+                        </div>
+                        <div>
+                          <div className="font-medium text-gray-900">{doctorName || 'Doctor: N/A'}</div>
+                          <div className="text-xs text-gray-500">{doctorSpeciality}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="py-2.5 px-3">{doctorNumber}</td>
+                    <td className="py-2.5 px-3">{c.title || 'Diagnosis: N/A'}</td>
                     <td className="py-2.5 px-3">
                       <button className="text-xs text-primary hover:underline" onClick={() => onView(c)}>View detail</button>
                     </td>
                     <td className="py-2.5 px-3 text-right">
-                      <div className="relative inline-flex">
+                      <div className="relative inline-flex dropdown-container">
                         <button onClick={() => setOpenRow(openRow === c.id ? null : c.id)} className="p-1.5 hover:bg-gray-100 border border-gray-200 rounded-md">
                           <More size={16} className="text-gray-600" />
                         </button>
                         {openRow === c.id && (
                           <div className="absolute right-0 mt-1 w-36 bg-white border border-gray-200 rounded-md shadow-lg z-10">
-                            <button className="w-full text-left px-3 py-2 text-xs hover:bg-gray-50" onClick={() => onView(c)}>View detail</button>
+                            <button className="w-full text-left px-3 py-2 text-xs hover:bg-gray-50" onClick={() => {
+                              onView(c);
+                              setOpenRow(null);
+                            }}>View detail</button>
                           </div>
                         )}
                       </div>
@@ -423,16 +978,50 @@ function HistoryTable({ consultations, loading, onView }: { consultations: any[]
       </div>
 
       {/* Pagination */}
+      {filteredConsultations.length > 0 && (
       <div className="flex items-center justify-between mt-4">
-        <p className="text-xs text-gray-500">Showing 1 to 5 of 25 results</p>
+          <p className="text-xs text-gray-500">
+            Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredConsultations.length)} of {filteredConsultations.length} results
+          </p>
         <div className="flex items-center gap-1">
-          <button className="px-2 py-1 text-sm border border-gray-200 rounded-md bg-white">Prev</button>
-          {[1, 2, 3, 4, 5].map((p) => (
-            <button key={p} className={`px-2.5 py-1 text-sm border rounded-md ${p === 1 ? "bg-primary text-white border-primary" : "bg-white border-gray-200"}`}>{p}</button>
-          ))}
-          <button className="px-2 py-1 text-sm border border-gray-200 rounded-md bg-white">Next</button>
+            <button 
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="px-2 py-1 text-sm border border-gray-200 rounded-md bg-white disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Prev
+            </button>
+            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+              let pageNum;
+              if (totalPages <= 5) {
+                pageNum = i + 1;
+              } else if (currentPage <= 3) {
+                pageNum = i + 1;
+              } else if (currentPage >= totalPages - 2) {
+                pageNum = totalPages - 4 + i;
+              } else {
+                pageNum = currentPage - 2 + i;
+              }
+              return (
+                <button 
+                  key={pageNum}
+                  onClick={() => setCurrentPage(pageNum)}
+                  className={`px-2.5 py-1 text-sm border rounded-md ${pageNum === currentPage ? "bg-primary text-white border-primary" : "bg-white border-gray-200"}`}
+                >
+                  {pageNum}
+                </button>
+              );
+            })}
+            <button 
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="px-2 py-1 text-sm border border-gray-200 rounded-md bg-white disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Next
+            </button>
         </div>
       </div>
+      )}
     </div>
   );
 }
@@ -556,17 +1145,21 @@ function NewAppointmentDesign({ patientId, onSaved }: { patientId: string; onSav
     }, 500);
   };
 
+
   const translateLocal = (text: string, from: string) => {
     if (!text) return "";
     if (from.startsWith("en")) return text;
-    // lightweight dictionary-based replacements for key medical terms
+  
     const maps: Record<string, Record<string, string>> = {
-      "fr": {
+      fr: {
         "douleur": "pain",
         "fièvre": "fever",
         "toux": "cough",
         "mal de tête": "headache",
+        "mal à la tête": "headache",
         "maux de tête": "headache",
+        "mal au ventre": "belly",
+        "maux de ventre": "stomachache",
         "fatigue": "fatigue",
         "nausée": "nausea",
         "vomissement": "vomiting",
@@ -588,7 +1181,7 @@ function NewAppointmentDesign({ patientId, onSaved }: { patientId: string; onSav
         "heure": "hour",
         "heures": "hours",
       },
-      "rw": {
+      rw: {
         "umuriro": "fever",
         "inkorora": "cough",
         "umutwe": "headache",
@@ -606,12 +1199,13 @@ function NewAppointmentDesign({ patientId, onSaved }: { patientId: string; onSav
         "isaha": "hour",
       },
     };
-    const key = from.slice(0,2);
-    const dict = maps[key];
+  
+    const dict = maps[from.slice(0, 2)];
     if (!dict) return text;
+  
     let out = text;
     for (const [k, v] of Object.entries(dict)) {
-      const re = new RegExp(`\\b${k}\\b`, 'gi');
+      const re = new RegExp(`\\b${k}\\b`, "gi");
       out = out.replace(re, v);
     }
     return out;
@@ -620,61 +1214,95 @@ function NewAppointmentDesign({ patientId, onSaved }: { patientId: string; onSav
   const localSummarize = (text: string) => {
     if (!text || text.trim().length < 5) return;
     
-    // build English input from segments if available
-    const englishText = segments.length
-      ? segments.map((s) => translateLocal(s.text, s.lang)).join(' ')
-      : translateLocal(text, lang);
-    const t = (englishText || "").toLowerCase();
-    
-    // Extract symptoms - look for medical keywords
-    const symptomsKeys = ["pain", "ache", "headache", "belly", "stomach", "back", "chest", "fever", "cough", "fatigue", "tired", "vomit", "nausea", "diarrhea", "sore", "chills", "hurt", "sick", "weak", "dizzy", "swelling", "rash", "itch", "throat"];
-    const foundSymptoms: string[] = [];
-    symptomsKeys.forEach(key => {
-      if (t.includes(key)) {
-        foundSymptoms.push(key);
+    /** 🧠 Step 1: Normalize numbers in multiple languages **/
+    const numberWords: Record<string, number> = {
+      // English
+      one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9,
+      // French
+      un: 1, une: 1, deux: 2, trois: 3, quatre: 4, cinq: 5, six_: 6, sept: 7, huit: 8, neuf: 9,
+      // Kinyarwanda (common small numbers)
+      rimwe: 1, kabiri: 2, gatatu: 3, kane: 4, gatanu: 5, gatandatu: 6, karindwi: 7, umunani: 8, icyenda: 9,
+    };
+  
+    const normalizeNumbers = (input: string): string => {
+      let out = input.toLowerCase();
+      for (const [word, num] of Object.entries(numberWords)) {
+        const re = new RegExp(`\\b${word}\\b`, "gi");
+        out = out.replace(re, num.toString());
       }
-    });
-    if (foundSymptoms.length > 0) {
-      setSymptoms(foundSymptoms.join(", "));
-    }
-    
-    // Extract duration
-    const durMatch = t.match(/(\d+)\s*(day|days|week|weeks|month|months|hour|hours|year|years)/);
+      return out;
+    };
+  
+    /** 🌍 Step 2: Translate to English (from local languages) **/
+    const englishText = segments.length
+      ? segments.map((s) => translateLocal(s.text, s.lang)).join(" ")
+      : translateLocal(text, lang);
+  
+    const t = normalizeNumbers(englishText).toLowerCase();
+  
+    /** 🔍 Step 3: Extract Symptoms **/
+    const symptomsKeys = [
+      "pain", "ache", "headache", "belly", "stomach", "abdominal", "back", "chest",
+      "fever", "cough", "fatigue", "tired", "vomit", "vomiting", "nausea", "diarrhea",
+      "sore", "chills", "hurt", "sick", "weak", "dizzy", "swelling", "rash", "itch",
+      "throat", "flu", "infection", "cold", "sneeze", "cramps", "burning", "bleeding",
+      "stomachache", "bellyache"
+    ];
+  
+    const foundSymptoms = symptomsKeys.filter((key) =>
+      new RegExp(`\\b${key}s?\\b`, "i").test(t)
+    );
+  
+    if (foundSymptoms.length > 0) setSymptoms(foundSymptoms.join(", "));
+  
+    /** ⏱ Step 4: Extract Duration **/
+    // Match patterns like “5 days”, “five days”, “cinq jours”, “3 semaines”, etc.
+    const durMatch = t.match(
+      /(\d+)\s*(day|days|week|weeks|month|months|hour|hours|year|years|jour|jours|semaine|semaines|mois|an|ans)/i
+    );
     if (durMatch) {
-      setDuration(durMatch[0]);
+      // Translate duration term to English for consistency
+      let duration = durMatch[0]
+        .replace(/\bjour(s)?\b/g, "days")
+        .replace(/\bsemaine(s)?\b/g, "weeks")
+        .replace(/\bmois\b/g, "months")
+        .replace(/\ban(s)?\b/g, "years");
+      setDuration(duration);
     }
-    
-    // Possible diagnosis based on symptoms
-    const diagKeys = {
-      "malaria": ["fever", "chills", "headache"],
-      "flu": ["fever", "cough", "fatigue", "ache"],
-      "gastritis": ["stomach", "belly", "nausea"],
-      "migraine": ["headache", "dizzy"],
-      "infection": ["fever", "pain", "swelling"],
-      "allergy": ["rash", "itch", "swelling"],
+  
+    /** 💡 Step 5: Diagnose by Symptom Pattern **/
+    const diagKeys: Record<string, string[]> = {
+      malaria: ["fever", "chills", "headache"],
+      flu: ["fever", "cough", "fatigue", "sore"],
+      gastritis: ["stomach", "belly", "nausea"],
+      migraine: ["headache", "dizzy", "light"],
+      infection: ["fever", "pain", "swelling"],
+      allergy: ["rash", "itch", "swelling"],
+      cold: ["sneeze", "cough", "runny", "fever"],
+      typhoid: ["fever", "diarrhea", "fatigue"],
     };
     
     const possibleDiag: string[] = [];
-    Object.entries(diagKeys).forEach(([diag, symptoms]) => {
-      const matches = symptoms.filter(s => foundSymptoms.includes(s));
-      if (matches.length >= 2) {
-        possibleDiag.push(diag);
-      }
-    });
+    for (const [diag, keys] of Object.entries(diagKeys)) {
+      const matches = keys.filter((s) => foundSymptoms.includes(s));
+      if (matches.length >= 2) possibleDiag.push(diag);
+    }
+  
     if (possibleDiag.length > 0) {
       setDiagnosis(possibleDiag.join(" or "));
     }
     
-    // Treatment suggestions
-    const rxKeys = ["paracetamol", "ibuprofen", "antibiotic", "rest", "hydration", "ORS", "aspirin", "medication"];
-    const foundRx: string[] = [];
-    rxKeys.forEach(key => {
-      if (t.includes(key)) {
-        foundRx.push(key);
-      }
-    });
-    
-    // Auto-suggest treatment based on symptoms
+    /** 💊 Step 6: Detect / Suggest Treatments **/
+    const rxKeys = [
+      "paracetamol", "ibuprofen", "antibiotic", "rest", "hydration", "ORS", "aspirin",
+      "painkiller", "panadol", "acetaminophen", "medication", "vitamin"
+    ];
+  
+    const foundRx = rxKeys.filter((key) =>
+      new RegExp(`\\b${key}s?\\b`, "i").test(t)
+    );
+  
+    // Auto-suggest based on symptoms
     if (foundSymptoms.includes("headache") || foundSymptoms.includes("pain")) {
       if (!foundRx.includes("paracetamol")) foundRx.push("paracetamol");
     }
@@ -687,6 +1315,10 @@ function NewAppointmentDesign({ patientId, onSaved }: { patientId: string; onSav
       setTreatment(foundRx.join(", "));
     }
   };
+  
+
+
+
 
   const onTranscriptChange = (val: string) => {
     setTranscript(val);
@@ -940,7 +1572,7 @@ function NewAppointmentDesign({ patientId, onSaved }: { patientId: string; onSav
   };
 
   return (
-    <div className="p-4 space-y-4">
+    <div className="pt-4 space-y-4">
       {/* Control Bar */}
       <div className="bg-white border border-gray-200 rounded-lg p-4">
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
@@ -970,7 +1602,7 @@ function NewAppointmentDesign({ patientId, onSaved }: { patientId: string; onSav
           </div>
           <div className="flex items-center gap-2 sm:ml-auto">
             <button onClick={handleRestart} className="px-4 py-2 text-sm border border-red-200 rounded-md bg-white inline-flex items-center gap-2 hover:bg-red-50 transition text-red-600 font-medium">
-              <Trash size={18} />
+              <ArrowRotateLeft size={18} />
               Restart
             </button>
             <button onClick={regenerateSummary} className="px-4 py-2 text-sm border border-primary rounded-md bg-white inline-flex items-center gap-2 hover:bg-primary/5 transition text-primary font-medium">
@@ -979,7 +1611,7 @@ function NewAppointmentDesign({ patientId, onSaved }: { patientId: string; onSav
             </button>
             <button onClick={handleGenerateReport} disabled={generating || !transcript} className="px-4 py-2 text-sm rounded-md bg-green-600 text-white inline-flex items-center gap-2 disabled:opacity-50 hover:bg-green-700 transition font-medium">
               <DocumentText size={18} className="text-white" />
-              {generating ? "Generating..." : "Generate Report"}
+              {generating ? "Generating..." : "Save & Report"}
             </button>
           </div>
         </div>
@@ -1014,7 +1646,7 @@ function NewAppointmentDesign({ patientId, onSaved }: { patientId: string; onSav
               <textarea 
                 value={transcript} 
                 onChange={(e) => onTranscriptChange(e.target.value)} 
-                className="w-full border border-gray-200 rounded-lg p-3 text-sm h-64 focus:ring-2 focus:ring-primary focus:border-transparent resize-none" 
+                className="w-full border border-gray-200 rounded-lg p-3 text-sm h-60 focus:ring-2 focus:ring-primary focus:border-transparent resize-none" 
                 placeholder="Your spoken words will appear here in real-time..."
               />
               {interimText && (
@@ -1068,7 +1700,7 @@ function NewAppointmentDesign({ patientId, onSaved }: { patientId: string; onSav
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
           <div className="bg-white rounded-lg p-8 max-w-sm w-full mx-4 text-center">
             <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <h3 className="text-lg font-semibold text-gray-800 mb-2">Generating Report</h3>
+            <h3 className="text-lg font-semibold text-gray-800 mb-2">Saving & Generating Report</h3>
             <p className="text-sm text-gray-600">Please wait while we compile your consultation data...</p>
           </div>
         </div>
@@ -1081,7 +1713,7 @@ function NewAppointmentDesign({ patientId, onSaved }: { patientId: string; onSav
         >
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gray-50">
-            <h3 className="text-lg font-semibold tracking-tight">Consultation Report</h3>
+            <h3 className="text-lg font-semibold tracking-tight">Report Saved Successfully!</h3>
             <button
             onClick={() => window.print()}
             className="flex items-center gap-2 px-4 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-100 transition"

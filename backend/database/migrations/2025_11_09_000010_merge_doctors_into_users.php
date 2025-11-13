@@ -39,8 +39,22 @@ return new class extends Migration
 
         // 2. Move existing doctors into users table
         if (Schema::hasTable('doctors')) {
-            // Insert doctors rows into users with role='doctor'
-            DB::statement("INSERT INTO users (name, first_name, last_name, email, phone, specialty, id_number, address, photo, password, role, created_at, updated_at) \n                SELECT CONCAT(first_name,' ',last_name), first_name, last_name, email, phone, specialty, id_number, address, photo, COALESCE(password,''), 'doctor', NOW(), NOW() \n                FROM doctors ON CONFLICT (email) DO NOTHING");
+            // Check if password column exists in doctors table
+            $hasPasswordColumn = Schema::hasColumn('doctors', 'password');
+            
+            if ($hasPasswordColumn) {
+                // Insert doctors rows into users with role='doctor' (with password)
+                DB::statement("INSERT INTO users (name, first_name, last_name, email, phone, specialty, id_number, address, photo, password, role, created_at, updated_at) 
+                    SELECT CONCAT(first_name,' ',last_name), first_name, last_name, email, phone, specialty, id_number, address, photo, COALESCE(password,''), 'doctor', NOW(), NOW() 
+                    FROM doctors 
+                    ON CONFLICT (email) DO NOTHING");
+            } else {
+                // Insert doctors rows into users with role='doctor' (without password - will be empty string)
+                DB::statement("INSERT INTO users (name, first_name, last_name, email, phone, specialty, id_number, address, photo, password, role, created_at, updated_at) 
+                    SELECT CONCAT(first_name,' ',last_name), first_name, last_name, email, phone, specialty, id_number, address, photo, '', 'doctor', NOW(), NOW() 
+                    FROM doctors 
+                    ON CONFLICT (email) DO NOTHING");
+            }
         }
 
         // 3. Update consultations foreign key to reference users.id (if consultations exists)

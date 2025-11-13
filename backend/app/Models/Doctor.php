@@ -3,73 +3,83 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 use PHPOpenSourceSaver\JWTAuth\Contracts\JWTSubject;
 
-class Doctor extends Model implements JWTSubject
+/**
+ * Doctor model - now uses users table with role='doctor'
+ * This is a compatibility layer after merging doctors into users table
+ */
+class Doctor extends User implements JWTSubject
 {
-    use HasFactory, SoftDeletes;
-
-    protected $fillable = [
-        'first_name',
-        'last_name',
-        'email',
-        'phone',
-        'specialty',
-        'id_number',
-        'address',
-        'photo',
-        'password',
-    ];
-
-    protected $casts = [
-        'address' => 'array',
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime',
-        'password' => 'hashed',
-    ];
-
-    protected $hidden = [
-        'password',
-    ];
+    use HasFactory;
 
     /**
-     * Get the doctor's full name.
+     * The table associated with the model.
+     *
+     * @var string
      */
-    public function getFullNameAttribute(): string
+    protected $table = 'users';
+
+    /**
+     * Boot the model.
+     */
+    protected static function boot()
     {
-        return "{$this->first_name} {$this->last_name}";
+        parent::boot();
+
+        // Always scope to doctors only
+        static::addGlobalScope('doctors', function (EloquentBuilder $builder) {
+            $builder->where('role', 'doctor');
+        });
     }
 
     /**
-     * Get formatted address string.
+     * Create a new Eloquent query builder for the model.
+     *
+     * @param  \Illuminate\Database\Query\Builder  $query
+     * @return \Illuminate\Database\Eloquent\Builder|static
      */
-    public function getFormattedAddressAttribute(): string
+    public function newEloquentBuilder($query)
     {
-        if (!$this->address || !is_array($this->address)) {
-            return '';
+        return new EloquentBuilder($query);
+    }
+
+    /**
+     * Override create to set role automatically
+     */
+    public static function create(array $attributes = [])
+    {
+        $attributes['role'] = 'doctor';
+        
+        // Ensure name is set if first_name and last_name are provided
+        if (!isset($attributes['name']) && isset($attributes['first_name']) && isset($attributes['last_name'])) {
+            $attributes['name'] = $attributes['first_name'] . ' ' . $attributes['last_name'];
         }
-
-        $parts = array_filter([
-            $this->address['street'] ?? null,
-            $this->address['city'] ?? null,
-            $this->address['state'] ?? null,
-            $this->address['zipCode'] ?? null,
-        ]);
-
-        return implode(', ', $parts);
+        
+        return parent::create($attributes);
     }
 
-    // JWTSubject implementation
-    public function getJWTIdentifier(): mixed
+    /**
+     * Override fill to set role automatically
+     */
+    public function fill(array $attributes)
     {
-        return $this->getKey();
+        $attributes['role'] = 'doctor';
+        
+        // Ensure name is set if first_name and last_name are provided
+        if (!isset($attributes['name']) && isset($attributes['first_name']) && isset($attributes['last_name'])) {
+            $attributes['name'] = $attributes['first_name'] . ' ' . $attributes['last_name'];
+        }
+        
+        return parent::fill($attributes);
     }
 
+    // JWTSubject implementation (inherited from User, but override custom claims)
     public function getJWTCustomClaims(): array
     {
-        return ['type' => 'doctor'];
+        return ['type' => 'doctor', 'role' => 'doctor'];
     }
 }
 

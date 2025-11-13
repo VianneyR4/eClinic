@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Profile2User, Edit, Trash, More, Calendar, Location } from 'iconsax-react';
+import { Profile2User, Edit, Trash, More, Calendar, Clipboard, Call, Location } from 'iconsax-react';
 import { useRouter } from 'next/navigation';
 import { apiService } from '@/services/api';
 
@@ -24,19 +24,35 @@ interface Patient {
 interface PatientListProps {
   onEdit?: (patient: Patient) => void;
   onDelete?: (id: string) => void;
+  onSendToQueue?: (patient: Patient) => void;
   filters?: { q?: string; gender?: string };
+  reloadKey?: number;
 }
 
-export default function PatientList({ onEdit, onDelete, filters }: PatientListProps) {
+export default function PatientList({ onEdit, onDelete, onSendToQueue, filters, reloadKey }: PatientListProps) {
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuOpenId !== null) {
+        const target = event.target as HTMLElement;
+        if (!target.closest('.dropdown-container')) {
+          setMenuOpenId(null);
+        }
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [menuOpenId]);
+
   useEffect(() => {
     loadPatients();
-  }, [filters]);
+  }, [filters, reloadKey]);
 
   const loadPatients = async () => {
     try {
@@ -122,12 +138,16 @@ export default function PatientList({ onEdit, onDelete, filters }: PatientListPr
         const initials = `${name.first?.[0] || ''}${name.last?.[0] || ''}`.toUpperCase();
         const dob = patient.dateOfBirth || patient.date_of_birth;
         const age = dob ? getAge(dob) : null;
-        const gender = patient.gender ?? '—';
+        const gender = patient.gender;
         const addressText = getAddressText(patient.address);
         const patientId = patient.id.toString();
 
         return (
-          <li key={patientId} className="relative bg-white rounded-lg p-5 border border-gray-200 hover:shadow-md transition">
+          <li 
+            key={patientId} 
+            onClick={() => router.push(`/dashboard/patients/${patientId}`)}
+            className="relative bg-white rounded-lg p-5 border border-gray-200 hover:shadow-md transition cursor-pointer"
+          >
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-center gap-3 min-w-0">
                 <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-semibold">
@@ -135,12 +155,15 @@ export default function PatientList({ onEdit, onDelete, filters }: PatientListPr
                 </div>
                 <div className="min-w-0">
                   <p className="text-base font-medium text-gray-900 truncate">{name.full}</p>
-                  <p className="text-sm text-gray-500 truncate">{age !== null ? `${age} yrs` : 'Age —'} • {gender}</p>
+                  <p className="text-sm text-gray-500 truncate">{age !== null ? `${age} yrs` : 'Age: N/A'} • {gender || 'Gender: N/A'}</p>
                 </div>
               </div>
-              <div className="relative">
+              <div className="relative dropdown-container">
                 <button 
-                  onClick={() => setMenuOpenId(menuOpenId === patientId ? null : patientId)} 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setMenuOpenId(menuOpenId === patientId ? null : patientId);
+                  }} 
                   className="p-1.5 hover:bg-gray-100 border border-gray-200 rounded-md"
                 >
                   <More size={16} className="text-gray-600" />
@@ -153,7 +176,8 @@ export default function PatientList({ onEdit, onDelete, filters }: PatientListPr
                     />
                     <div className="absolute right-0 mt-1 w-36 bg-white border border-gray-200 rounded-md shadow-lg z-10">
                       <button 
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation();
                           router.push(`/dashboard/patients/${patientId}`);
                           setMenuOpenId(null);
                         }} 
@@ -161,9 +185,22 @@ export default function PatientList({ onEdit, onDelete, filters }: PatientListPr
                       >
                         View detail
                       </button>
+                      {onSendToQueue && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onSendToQueue(patient as Patient);
+                            setMenuOpenId(null);
+                          }}
+                          className="w-full text-left px-3 py-2 text-xs hover:bg-gray-50"
+                        >
+                          Send to queue
+                        </button>
+                      )}
                       {onEdit && (
                         <button 
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation();
                             onEdit(patient);
                             setMenuOpenId(null);
                           }} 
@@ -174,7 +211,8 @@ export default function PatientList({ onEdit, onDelete, filters }: PatientListPr
                       )}
                       {onDelete && (
                         <button 
-                          onClick={async () => {
+                          onClick={async (e) => {
+                            e.stopPropagation();
                             if (confirm('Are you sure you want to delete this patient?')) {
                               try {
                                 await apiService.deletePatient(patientId);
@@ -197,19 +235,17 @@ export default function PatientList({ onEdit, onDelete, filters }: PatientListPr
             </div>
 
             <div className="mt-3 space-y-1.5">
-              {patient.email && (
-                <div className="flex items-center gap-2 text-xs text-gray-600">
-                  <span className="truncate">{patient.email}</span>
-                </div>
-              )}
-              {patient.phone && (
-                <div className="flex items-center gap-2 text-xs text-gray-600">
-                  <span className="truncate">{patient.phone}</span>
-                </div>
-              )}
+              <div className="flex items-center gap-2 text-xs text-gray-600">
+                <Clipboard size={14} className="text-gray-400" />
+                <span className="truncate">Email: {patient.email || 'Email: N/A'}</span>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-gray-600">
+                <Call size={14} className="text-gray-400" />
+                <span className="truncate">Phone: {patient.phone || 'Phone: N/A'}</span>
+              </div>
               <div className="flex items-center gap-2 text-xs text-gray-600">
                 <Location size={14} className="text-gray-400" />
-                <span className="truncate">{addressText}</span>
+                <span className="truncate">Address: {addressText === 'Address —' ? 'Address: N/A' : addressText}</span>
               </div>
             </div>
           </li>
