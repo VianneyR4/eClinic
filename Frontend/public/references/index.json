@@ -1,0 +1,269 @@
+{
+  "version": 1,
+  "sources": [
+    {
+      "id": "who",
+      "name": "WHO Clinical Guidelines",
+      "url": "https://www.who.int/",
+      "sections": [
+        {
+          "id": "who-fever-adults",
+          "title": "Fever assessment in adults",
+          "content": "Assess for emergency signs (shock, respiratory distress, impaired consciousness). Take history for travel, exposure. Provide supportive care (antipyretics, hydration). Use targeted diagnostics based on local disease prevalence (e.g., malaria, typhoid). Start empiric antibiotics for suspected severe bacterial infection."
+        },
+        {
+          "id": "who-antenatal-care",
+          "title": "Antenatal care: danger signs",
+          "content": "Minimum of 8 contacts. Screen for danger signs: vaginal bleeding, severe headache/visual disturbances, convulsions, fever, severe abdominal pain, reduced fetal movements. Provide iron/folate, tetanus toxoid immunization, and in malaria-endemic areas, intermittent preventive treatment (IPTp) with Sulfadoxine-Pyrimethamine."
+        },
+        {
+          "id": "who-pneumonia-pediatric",
+          "title": "Management of childhood pneumonia",
+          "content": "Classify by severity: Fast Breathing (outpatient amoxicillin), Chest Indrawing (severe pneumonia, oral amoxicillin, monitor), General Danger Signs (severe/very severe disease, pre-referral antibiotics, urgent hospitalization)."
+        },
+        {
+          "id": "who-diarrhea-management",
+          "title": "Diarrhea management in children",
+          "content": "Assess dehydration. Plan A (no dehydration): Extra fluids and zinc. Plan B (some dehydration): ORS. Plan C (severe dehydration): IV Ringer's Lactate and ORS. Continue feeding. Do not use antibiotics routinely."
+        },
+        {
+          "id": "who-hiv-testing-treat",
+          "title": "HIV Testing and Treat All",
+          "content": "Recommend provider-initiated testing. Offer and recommend ART to all people living with HIV, regardless of CD4 count or clinical stage. First-line regimen is TLD (Tenofovir, Lamivudine, Dolutegravir)."
+        },
+        {
+          "id": "who-tb-diagnosis",
+          "title": "TB Diagnosis",
+          "content": "Use WHO-recommended rapid diagnostics (e.g., Xpert MTB/RIF, Truenat) as initial test for all with TB signs. Test for drug resistance. Clinical diagnosis remains important if molecular tests unavailable."
+        },
+        {
+          "id": "who-tb-treatment",
+          "title": "TB Treatment",
+          "content": "Use standardized, all-oral regimens. For drug-susceptible TB: 6-month regimen. For multidrug-resistant TB (MDR-TB): 6-9 month regimen with BPaLM (Bedaquiline, Pretomanid, Linezolid, Moxifloxacin). Ensure treatment adherence support."
+        },
+        {
+          "id": "who-malnutrition-children",
+          "title": "Management of child malnutrition",
+          "content": "Diagnose severe acute malnutrition (SAM) by MUAC < 115mm or bilateral pitting edema. Treat complicated SAM inpatient with F-75/F-100 therapeutic milk. Treat uncomplicated SAM outpatient with Ready-to-Use Therapeutic Food (RUTF)."
+        },
+        {
+          "id": "who-hypertension-management",
+          "title": "Hypertension management",
+          "content": "Diagnose after multiple readings. Non-pharmacological intervention first (diet, exercise, salt reduction). Pharmacological treatment: Low-dose thiazide, ACE inhibitor, or long-acting calcium channel blocker. Aim for BP < 140/90 mmHg."
+        },
+        {
+          "id": "who-diabetes-management",
+          "title": "Diabetes management (Type 2)",
+          "content": "Diagnose with HbA1c ≥6.5% or fasting plasma glucose ≥7.0 mmol/L. First-line treatment is Metformin. Lifestyle modification is cornerstone. Control BP and lipids. Screen for complications."
+        },
+        {
+          "id": "who-mh-gap",
+          "title": "mhGAP: Depression management",
+          "content": "Assess for depression using clinical interview. For moderate-severe depression: Psychosocial interventions and antidepressant (SSRI like Sertraline). For mild depression: Psychosocial support. Assess for suicide risk. Follow up regularly."
+        },
+        {
+          "id": "who-pain-management",
+          "title": "Pain management (analgesic ladder)",
+          "content": "Step 1: Non-opioids (e.g., Paracetamol, NSAIDs). Step 2: Mild opioids (e.g., Codeine) for mild-moderate pain. Step 3: Strong opioids (e.g., Morphine) for moderate-severe pain. Always assess and re-assess pain."
+        },
+        {
+          "id": "who-sepsis-adults",
+          "title": "Sepsis in adults",
+          "content": "Suspected infection + SOFA score ≥2 (or quickSOFA). Time-critical condition. Management bundle: Measure lactate, obtain blood cultures, administer broad-spectrum antibiotics, administer IV fluids for hypotension/lactate >4mmol/L."
+        },
+        {
+          "id": "who-postnatal-care",
+          "title": "Postnatal care for mother and newborn",
+          "content": "First 24 hours, day 3, between days 7-14, and 6 weeks. Assess for maternal danger signs (bleeding, infection, pre-eclampsia). Support breastfeeding. Assess newborn for danger signs (feeding problems, convulsions, lethargy). Provide immunization."
+        },
+        {
+          "id": "who-sti-syndrome-management",
+          "title": "STI syndrome management",
+          "content": "Use syndromic approach where lab diagnosis unavailable. Urethral discharge: treat for Gonorrhea and Chlamydia. Vaginal discharge: manage for vaginitis (Metronidazole) and cervicitis (Azithromycin + Ceftriaxone). Genital ulcers: treat for Syphilis and Chancroid."
+        },
+        {
+          "id": "who-asthma-management",
+          "title": "Asthma management",
+          "content": "Controller medication: Inhaled corticosteroids (ICS). Reliever medication: Short-acting beta-agonists (SABA). For severe exacerbations, use oral corticosteroids and oxygen if available. Assess inhaler technique."
+        },
+        {
+          "id": "who-epilepsy-management",
+          "title": "Epilepsy management",
+          "content": "Diagnose clinically. First-line monotherapy: Carbamazepine or Valproate or Lamotrigine. Titrate dose slowly to control seizures with minimal side effects. Counsel on adherence and safety. Refer if not controlled on first two drugs."
+        },
+        {
+          "id": "who-anemia-in-pregnancy",
+          "title": "Anemia in pregnancy",
+          "content": "Diagnose with Hb < 11 g/dL. Treat with daily oral iron (120-200 mg elemental iron) and folic acid (400 mcg). Screen for underlying causes (helminths, malaria). Severe anemia (Hb <7 g/dL) may require transfusion."
+        },
+        {
+          "id": "who-child-immunization",
+          "title": "Child immunization schedule",
+          "content": "BCG at birth. DTP-HepB-Hib at 6, 10, 14 weeks. OPV at birth, 6, 10, 14 weeks. PCV at 6, 10, 14 weeks. Rotavirus at 6, 10 weeks. Measles-Rubella at 9 months. Follow national schedule for any variations."
+        },
+        {
+          "id": "who-family-planning",
+          "title": "Family planning methods",
+          "content": "Offer a choice of effective methods: Long-acting reversible (Implants, IUDs), Short-acting hormonal (Pills, Injectables), Barrier methods (Condoms), Permanent (Tubal ligation, Vasectomy). Provide non-discriminatory, rights-based counseling."
+        },
+        {
+          "id": "who-hepatitis-b-management",
+          "title": "Hepatitis B management",
+          "content": "Diagnose with HBsAg. Assess for treatment eligibility based on viral load, ALT levels, liver disease severity. First-line treatment is Tenofovir or Entecavir. Vaccinate all infants at birth, 6, 10, 14 weeks."
+        },
+        {
+          "id": "who-meningitis-management",
+          "title": "Bacterial meningitis management",
+          "content": "Medical emergency. Symptoms: fever, headache, neck stiffness, altered consciousness. Pre-referral: Ceftriaxone IM. Definitive treatment: IV Ceftriaxone for 10-14 days. Give Dexamethasone adjunctively in high-income countries (controversial in low-resource)."
+        },
+        {
+          "id": "who-wound-management",
+          "title": "Basic wound management",
+          "content": "Control bleeding. Clean wound with clean water and soap. Debride if necessary. Apply appropriate dressing. Give Tetanus Toxoid if indicated. Use antibiotics only for infected wounds or high-risk wounds (e.g., animal bites)."
+        },
+        {
+          "id": "who-mental-health-emergency",
+          "title": "Mental health emergency (agitation)",
+          "content": "Ensure safety of patient and staff. Use de-escalation techniques first. If pharmacological restraint needed, use Lorazepam IM or Haloperidol + Promethazine IM. Monitor vital signs. Identify and treat underlying cause."
+        },
+        {
+          "id": "who-palliative-care-pain",
+          "title": "Palliative care: pain and symptom control",
+          "content": "Use WHO analgesic ladder for pain. For dyspnea: opioids (Morphine) and oxygen. For nausea: Metoclopramide or Haloperidol. For terminal agitation: Midazolam. Provide psychosocial and spiritual support."
+        }
+      ]
+    },
+    {
+      "id": "rwanda",
+      "name": "Rwanda Clinical Treatment Protocols",
+      "url": "https://moh.gov.rw/",
+      "sections": [
+        {
+          "id": "rw-imci-fever-children",
+          "title": "IMCI: Fever in children",
+          "content": "Assess for general danger signs. Perform mRDT. Classify: Very Severe Febrile Disease (danger sign + fever) - pre-referral rectal/IM artesunate and refer. Malaria (mRDT+) - treat with AL. Fever - Malaria Unlikely (mRDT- and no other cause) - advise care-taker and paracetamol."
+        },
+        {
+          "id": "rw-malaria-protocol",
+          "title": "Malaria treatment protocol",
+          "content": "Uncomplicated P. falciparum: First-line is Artemether-Lumefantrine (AL) for 3 days. Severe Malaria: IV/IM Artesunate. Chemoprevention: ITNs and IPTp with SP for pregnant women. Confirm diagnosis with mRDT/microscopy before treatment where possible."
+        },
+        {
+          "id": "rw-hiv-testing-treatment",
+          "title": "HIV Testing and Initiation of ART",
+          "content": "'Test and Treat' for all. Use national RDT algorithm. Initiate ART for all HIV+ individuals as soon as possible, ideally same day. First-line regimen is TLD (Tenofovir, Lamivudine, Dolutegravir). Provide intensive adherence counseling."
+        },
+        {
+          "id": "rw-tb-diagnosis-protocol",
+          "title": "TB Diagnosis Protocol",
+          "content": "Use Xpert MTB/RIF as initial diagnostic test for all presumptive TB cases. For children and extrapulmonary TB, Xpert Ultra is preferred. Conduct contact tracing for all index patients. All TB patients must be tested for HIV."
+        },
+        {
+          "id": "rw-tb-treatment-protocol",
+          "title": "TB Treatment Protocol",
+          "content": "Drug-susceptible TB: 2HRZE/4HE regimen. For MDR/RR-TB: Use shorter all-oral regimen (6-9 months BPaLM). Treatment is given under direct observation (DOT). Monitor for side effects, especially for new drugs like Bedaquiline."
+        },
+        {
+          "id": "rw-ntd-bilharzia",
+          "title": "Neglected Tropical Diseases: Bilharzia (Schistosomiasis)",
+          "content": "In endemic areas, school-age children are targeted for preventive chemotherapy with Praziquantel. Diagnosis is by clinical signs (hematuria) and stool/urine antigen tests. Treatment: Praziquantel 40mg/kg single dose."
+        },
+        {
+          "id": "rw-ntd-sth",
+          "title": "Neglected Tropical Diseases: Soil-Transmitted Helminths",
+          "content": "Preventive chemotherapy with Albendazole 400mg single dose for school-age children in endemic areas. Also target pregnant women (2nd/3rd trimester) and adults in high-risk occupations. Promote sanitation and hygiene."
+        },
+        {
+          "id": "rw-diabetes-hypertension",
+          "title": "Diabetes and Hypertension (Rwanda NCD Protocol)",
+          "content": "Integrated screening for NCDs at health centers. Hypertension: First-line is Hydrochlorothiazide or Amlodipine. Diabetes: First-line is Metformin. Use a standardized patient card for follow-up. Refer complications to district hospital."
+        },
+        {
+          "id": "rw-mental-health-protocol",
+          "title": "Mental Health (mhGAP-based protocol)",
+          "content": "Trained health providers at health centers diagnose and manage common disorders. Depression: Fluoxetine or Amitriptyline. Psychosis: Haloperidol. Epilepsy: Carbamazepine or Phenobarbital. Refer complex cases to district or referral hospitals."
+        },
+        {
+          "id": "rw-family-planning-protocol",
+          "title": "Family Planning Service Provision",
+          "content": "Offer full method mix: Implants (Jadelle), IUDs, Injectables (Depo-Provera), Pills, Condoms. Provide counseling on effectiveness, side effects, and STI prevention. Services are integrated into all levels of care, including community health."
+        },
+        {
+          "id": "rw-emergency-obstetric-care",
+          "title": "Emergency Obstetric Care (EmONC)",
+          "content": "Signal functions at health centers: administer parenteral antibiotics, oxytocics, anticonvulsants; perform manual removal of placenta; remove retained products; perform assisted vaginal delivery; perform neonatal resuscitation. Refer major complications like C-section to hospital."
+        },
+        {
+          "id": "rw-newborn-resuscitation",
+          "title": "Newborn Resuscitation",
+          "content": "Dry the baby thoroughly. Assess breathing. If not breathing or gasping, clear airway and start ventilation with bag-and-mask. If no improvement, check chest movement and call for help. Chest compressions if heart rate <60 bpm after effective ventilation."
+        },
+        {
+          "id": "rw-kangaroo-mother-care",
+          "title": "Kangaroo Mother Care (KMC) for low birth weight",
+          "content": "For stable neonates <2000g. Continuous skin-to-skin contact between mother and baby. Exclusive breastfeeding. Early discharge from health facility with close follow-up. Promotes thermal regulation, bonding, and growth."
+        },
+        {
+          "id": "rw-acute-flaccid-paralysis",
+          "title": "Acute Flaccid Paralysis (AFP) Surveillance",
+          "content": "Any child <15 years with AFP, or any person with suspected polio, must be reported immediately to the district. Two stool samples 24 hours apart must be collected within 14 days of paralysis onset and shipped to the national lab for polio virus testing."
+        },
+        {
+          "id": "rw-rabies-post-exposure",
+          "title": "Rabies Post-Exposure Prophylaxis (PEP)",
+          "content": "For category II (nibbling) and III (bites, licks on broken skin) exposures: Immediately wash wound with soap and water for 15 minutes. Give Rabies vaccine on days 0, 3, 7, and 21-28. For category III, also administer Rabies Immunoglobulin (RIG) if available."
+        },
+        {
+          "id": "rw-cholera-outbreak",
+          "title": "Cholera Outbreak Case Management",
+          "content": "Establish Cholera Treatment Center (CTC). Assess dehydration. Severe dehydration: IV Ringer's Lactate immediately. Some dehydration: ORS. Antibiotics (Doxycycline single dose or Azithromycin) for severe cases to reduce duration and shedding. Infection prevention and control is critical."
+        },
+        {
+          "id": "rw-severe-acute-malnutrition",
+          "title": "Severe Acute Malnutrition (SAM) Management",
+          "content": "Outpatient Therapeutic Program (OTP) for uncomplicated SAM: Provide RUTF, routine medications (Amoxicillin, Albendazole, Malaria treatment if positive), and weekly follow-up. Complicated SAM (with medical issues, anorexia) admitted to inpatient Stabilization Center for F-75/F-100 therapeutic milk."
+        },
+        {
+          "id": "rw-viral-hepatitis-b-c",
+          "title": "Viral Hepatitis B and C Screening",
+          "content": "Integrate screening into HIV/TB clinics and for pregnant women. Use rapid tests. For Hep B positive, assess for treatment (Tenofovir). For Hep C positive, refer for treatment with direct-acting antivirals (DAAs) which are available in Rwanda."
+        },
+        {
+          "id": "rw-adolescent-health-services",
+          "title": "Adolescent and Youth-Friendly Health Services",
+          "content": "Provide confidential, non-judgmental services. Key packages: SRH (contraception, STI management), mental health, substance abuse prevention, nutrition. Services are available at designated youth corners in health facilities."
+        },
+        {
+          "id": "rw-blood-transfusion-protocol",
+          "title": "Blood Transfusion Safety Protocol",
+          "content": "All donated blood is screened for HIV, Hepatitis B, Hepatitis C, and Syphilis. Use group O Rh-negative blood for emergency transfusion if cross-match not possible. Use clinical judgment for transfusion trigger (e.g., Hb <7 g/dL in stable adult)."
+        },
+        {
+          "id": "rw-essential-medicines-list",
+          "title": "Rwanda Essential Medicines List (EML) Use",
+          "content": "Prescribe from the national EML. Adhere to standard treatment guidelines for drug selection and duration. Report stock-outs through the logistics management information system (LMIS). Promote rational use of medicines to combat antimicrobial resistance."
+        },
+        {
+          "id": "rw-community-health-workers",
+          "title": "Role of Community Health Workers (CHWs)",
+          "content": "Binômes provide integrated community case management (iCCM) for malaria (mRDT, AL), pneumonia (assess breathing, give Amoxicillin), and diarrhea (ORS, Zinc). Also conduct health promotion, follow-up for TB/HIV/NCDs, and report vital events."
+        },
+        {
+          "id": "rw-infection-prevention-control",
+          "title": "Infection Prevention and Control (IPC)",
+          "content": "Core components: hand hygiene, use of personal protective equipment (PPE), safe waste management, cleaning and disinfection of equipment and environment, and safe injection practices. Apply standard precautions for all patients."
+        },
+        {
+          "id": "rw-pneumococcal-conjugate-vaccine",
+          "title": "Pneumococcal Conjugate Vaccine (PCV) Schedule",
+          "content": "Routine childhood immunization with PCV13 at 6, 10, and 14 weeks of age. No booster dose. This vaccine prevents invasive pneumococcal diseases like pneumonia, meningitis, and sepsis in children."
+        },
+        {
+          "id": "rw-human-papillomavirus-vaccine",
+          "title": "Human Papillomavirus (HPV) Vaccine",
+          "content": "Routine vaccination for girls aged 12 years (Grade 6) with 2 doses, 6 months apart. The vaccine prevents cervical cancer caused by HPV. School-based delivery is the primary strategy."
+        }
+      ]
+    }
+  ]
+}

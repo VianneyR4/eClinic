@@ -8,6 +8,7 @@ import AppointmentModal from '@/components/AppointmentModal';
 import { useRxDB } from '@/providers/RxDBProvider';
 import { Add, Filter } from 'iconsax-react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { apiService } from '@/services/api';
 
 export default function PatientsPage() {
   const { db, isInitialized } = useRxDB();
@@ -34,7 +35,24 @@ export default function PatientsPage() {
     setShowForm(true);
   };
 
-  const handleSendToQueue = (patient: any) => {
+  const handleSendToQueue = async (patient: any) => {
+    try {
+      const response = await apiService.getQueue();
+      const items = response?.data || [];
+      const alreadyQueued = Array.isArray(items)
+        ? items.some((it: any) => it?.patientId === patient.id && (it?.status === 'waiting' || it?.status === 'in_progress'))
+        : false;
+
+      if (alreadyQueued) {
+        alert('This patient is already in the active queue.');
+        return;
+      }
+    } catch (e) {
+      console.error('Error checking queue before enqueue:', e);
+      alert('Could not verify queue status. Please try again.');
+      return;
+    }
+
     const firstName = patient.firstName || patient.first_name || '';
     const lastName = patient.lastName || patient.last_name || '';
     setNewPatient({

@@ -122,7 +122,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
 
         {/* Search Dropdown */}
         {showSearchDropdown && searchQuery && (
-          <div className="absolute left-0 top-full mt-2 z-50" style={{ width: '100%', maxWidth: '896px' }}>
+          <div className="absolute left-0 top-full mt-2 z-50" style={{ width: '100%'}}>
             <SearchDropdown
               query={searchQuery}
               onClose={() => setShowSearchDropdown(false)}
@@ -138,13 +138,14 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
           <SyncIndicator />
         </div>
         
-        {/* AI Assistant - Hidden on mobile, show on tablet+ */}
+        {/* Virtual Assistant - Hidden on mobile, show on tablet+ */}
         <button className="hidden md:flex px-3 md:px-5 py-1.5 bg-primary text-white text-xs rounded-md hover:bg-opacity-90 transition items-center gap-1.5" 
+          onClick={() => router.push('/dashboard/assistant')}
           style={{
             height: 35,
             background: "linear-gradient(38deg,rgba(46, 55, 164, 1) 0%, rgba(87, 199, 133, 1) 98%, rgba(145, 199, 87, 1) 100%)"
           }}>
-          <span className="font-medium hidden lg:inline">AI Assistant</span>
+          <span className="font-medium hidden lg:inline">Virtual Assistant</span>
           <Bubble size={16} variant={"Bold"} className="text-white" />
         </button>
 

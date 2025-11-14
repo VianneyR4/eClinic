@@ -149,6 +149,14 @@ echo ""
 echo "✅ Backend setup complete!"
 echo ""
 
+# Optional: clear config and run tests on boot
+if [ "${RUN_TESTS_ON_BOOT}" = "true" ]; then
+  echo "🧪 RUN_TESTS_ON_BOOT=true → clearing config and running tests..."
+  php artisan config:clear || true
+  # Use sqlite in-memory if configured in testing env
+  php artisan test || true
+fi
+
 # Execute the main command (apache2-foreground)
 exec "$@"
 

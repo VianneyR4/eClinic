@@ -900,7 +900,7 @@ function HistoryTable({ consultations, loading, onView }: { consultations: any[]
             <tr className="text-xs text-gray-500 border-b border-gray-200">
               <th className="py-3 px-3 font-medium">Date & Time</th>
               <th className="py-3 px-3 font-medium">Doctor</th>
-              <th className="py-3 px-3 font-medium">Doctor's Phone</th>
+              <th className="py-3 px-3 font-medium">Doctor&apos;s Phone</th>
               <th className="py-3 px-3 font-medium">Diagnosis</th>
               <th className="py-3 px-3 font-medium">Actions</th>
               <th className="py-3 px-3 w-10"></th>
@@ -1601,7 +1601,7 @@ function NewAppointmentDesign({ patientId, onSaved }: { patientId: string; onSav
             </button>
           </div>
           <div className="flex items-center gap-2 sm:ml-auto">
-            <button onClick={handleRestart} className="px-4 py-2 text-sm border border-red-200 rounded-md bg-white inline-flex items-center gap-2 hover:bg-red-50 transition text-red-600 font-medium">
+            <button onClick={handleRestart} className="px-4 py-2 text-sm border border-gray-300 rounded-md bg-white inline-flex items-center gap-2 hover:bg-gray-50 transition text-gray-700 font-medium">
               <ArrowRotateLeft size={18} />
               Restart
             </button>

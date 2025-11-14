@@ -28,6 +28,7 @@ Route::prefix('v1')->group(function () {
             'timestamp' => now()->toIso8601String(),
         ]);
     });
+
 });
 
 // Protected routes (require authentication via user or doctor)

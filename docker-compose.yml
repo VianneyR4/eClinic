@@ -30,6 +30,7 @@ services:
       - DB_PASSWORD=postgres
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      - RUN_TESTS_ON_BOOT=true
 
   # Frontend - Next.js
   frontend:

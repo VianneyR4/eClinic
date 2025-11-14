@@ -10,11 +10,27 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
+use OpenApi\Annotations as OA;
 
+/**
+ * @OA\Tag(
+ *   name="Queue",
+ *   description="Patient queue management endpoints"
+ * )
+ */
 class QueueController extends Controller
 {
     /**
      * Display a listing of queue items.
+     *
+     * @OA\Get(
+     *   path="/api/v1/queue",
+     *   tags={"Queue"},
+     *   summary="List queue items",
+     *   @OA\Parameter(name="status", in="query", @OA\Schema(type="string", enum={"waiting","in_progress","done","canceled"})),
+     *   @OA\Parameter(name="queue_date", in="query", @OA\Schema(type="string", format="date")),
+     *   @OA\Response(response=200, description="OK")
+     * )
      */
     public function index(Request $request): JsonResponse
     {
@@ -92,6 +108,22 @@ class QueueController extends Controller
 
     /**
      * Store a newly created queue item.
+     *
+     * @OA\Post(
+     *   path="/api/v1/queue",
+     *   tags={"Queue"},
+     *   summary="Create queue item",
+     *   @OA\RequestBody(
+     *     required=true,
+     *     @OA\JsonContent(required={"patientId","triageLevel"},
+     *       @OA\Property(property="patientId", type="integer"),
+     *       @OA\Property(property="triageLevel", type="string", enum={"low","medium","high","critical"}),
+     *       @OA\Property(property="status", type="string", enum={"waiting","in_progress","done","canceled"})
+     *     )
+     *   ),
+     *   @OA\Response(response=201, description="Created"),
+     *   @OA\Response(response=422, description="Validation error")
+     * )
      */
     public function store(Request $request): JsonResponse
     {
@@ -158,6 +190,23 @@ class QueueController extends Controller
 
     /**
      * Update the specified queue item.
+     *
+     * @OA\Put(
+     *   path="/api/v1/queue/{id}",
+     *   tags={"Queue"},
+     *   summary="Update queue item",
+     *   @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
+     *   @OA\RequestBody(
+     *     required=false,
+     *     @OA\JsonContent(
+     *       @OA\Property(property="status", type="string", enum={"waiting","in_progress","done","canceled"}),
+     *       @OA\Property(property="triageLevel", type="string", enum={"low","medium","high","critical"})
+     *     )
+     *   ),
+     *   @OA\Response(response=200, description="OK"),
+     *   @OA\Response(response=404, description="Not found"),
+     *   @OA\Response(response=422, description="Validation error")
+     * )
      */
     public function update(Request $request, int $id): JsonResponse
     {
@@ -228,6 +277,15 @@ class QueueController extends Controller
 
     /**
      * Remove the specified queue item.
+     *
+     * @OA\Delete(
+     *   path="/api/v1/queue/{id}",
+     *   tags={"Queue"},
+     *   summary="Delete queue item",
+     *   @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
+     *   @OA\Response(response=200, description="OK"),
+     *   @OA\Response(response=404, description="Not found")
+     * )
      */
     public function destroy(int $id): JsonResponse
     {

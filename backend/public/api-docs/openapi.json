@@ -1,0 +1,300 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "eClinic API",
+    "version": "1.0.0",
+    "description": "Static OpenAPI spec served without composer. For full annotations, install L5-Swagger."
+  },
+  "servers": [
+    { "url": "http://localhost:8000", "description": "Local" }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "Patient": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "first_name": { "type": "string" },
+          "last_name": { "type": "string" },
+          "email": { "type": "string", "format": "email" },
+          "phone": { "type": "string" },
+          "photo": { "type": "string" }
+        }
+      },
+      "QueueItem": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "patientId": { "type": "integer" },
+          "tokenNumber": { "type": "integer" },
+          "triageLevel": { "type": "string", "enum": ["low","medium","high","critical"] },
+          "status": { "type": "string", "enum": ["waiting","in_progress","done","canceled"] },
+          "queueDate": { "type": "string", "format": "date" }
+        }
+      },
+      "ApiResponse": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean" },
+          "message": { "type": "string" },
+          "data": { "type": "object" }
+        }
+      },
+      "LoginRequest": {
+        "type": "object",
+        "required": ["email", "password"],
+        "properties": {
+          "email": { "type": "string", "format": "email" },
+          "password": { "type": "string" }
+        }
+      },
+      "VerifyEmailRequest": {
+        "type": "object",
+        "required": ["email", "code"],
+        "properties": {
+          "email": { "type": "string", "format": "email" },
+          "code": { "type": "string" }
+        }
+      },
+      "ResendVerificationRequest": {
+        "type": "object",
+        "required": ["email"],
+        "properties": { "email": { "type": "string", "format": "email" } }
+      },
+      "TokenResponse": {
+        "type": "object",
+        "properties": {
+          "access_token": { "type": "string" },
+          "token_type": { "type": "string", "example": "bearer" },
+          "expires_in": { "type": "integer" }
+        }
+      },
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "name": { "type": "string" },
+          "email": { "type": "string", "format": "email" },
+          "role": { "type": "string" }
+        }
+      },
+      "Consultation": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "patientId": { "type": "integer" },
+          "doctorId": { "type": "integer" },
+          "summary": { "type": "string" },
+          "notes": { "type": "string" }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/api/v1/auth/login": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Login and receive JWT",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LoginRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/TokenResponse" } } } },
+          "401": { "description": "Invalid credentials" }
+        }
+      }
+    },
+    "/api/v1/auth/verify-email": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Verify email using code",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/VerifyEmailRequest" } } } },
+        "responses": { "200": { "description": "Verified" }, "422": { "description": "Invalid code" } }
+      }
+    },
+    "/api/v1/auth/resend-verification": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Resend verification code",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ResendVerificationRequest" } } } },
+        "responses": { "200": { "description": "Sent" } }
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Logout current user",
+        "security": [ { "bearerAuth": [] } ],
+        "responses": { "200": { "description": "Logged out" }, "401": { "description": "Unauthorized" } }
+      }
+    },
+    "/api/v1/auth/me": {
+      "get": {
+        "tags": ["Auth"],
+        "summary": "Get current user",
+        "security": [ { "bearerAuth": [] } ],
+        "responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/User" } } } }, "401": { "description": "Unauthorized" } }
+      }
+    },
+    "/api/v1/patients": {
+      "get": {
+        "tags": ["Patients"],
+        "summary": "List patients",
+        "parameters": [
+          { "name": "per_page", "in": "query", "schema": { "type": "integer" } },
+          { "name": "search", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiResponse" } } } }
+        }
+      },
+      "post": {
+        "tags": ["Patients"],
+        "summary": "Create patient",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Patient" } } } },
+        "responses": {
+          "201": { "description": "Created" },
+          "422": { "description": "Validation error" }
+        }
+      }
+    },
+    "/api/v1/patients/{id}": {
+      "get": {
+        "tags": ["Patients"],
+        "summary": "Get patient",
+        "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } } ],
+        "responses": { "200": { "description": "OK" }, "404": { "description": "Not found" } }
+      },
+      "put": {
+        "tags": ["Patients"],
+        "summary": "Update patient",
+        "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } } ],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Patient" } } } },
+        "responses": { "200": { "description": "OK" }, "404": { "description": "Not found" }, "422": { "description": "Validation error" } }
+      },
+      "delete": {
+        "tags": ["Patients"],
+        "summary": "Delete patient",
+        "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } } ],
+        "responses": { "200": { "description": "OK" }, "404": { "description": "Not found" } }
+      }
+    },
+    "/api/v1/queue": {
+      "get": {
+        "tags": ["Queue"],
+        "summary": "List queue items",
+        "parameters": [
+          { "name": "status", "in": "query", "schema": { "type": "string", "enum": ["waiting","in_progress","done","canceled"] } },
+          { "name": "queue_date", "in": "query", "schema": { "type": "string", "format": "date" } }
+        ],
+        "responses": { "200": { "description": "OK" } }
+      },
+      "post": {
+        "tags": ["Queue"],
+        "summary": "Create queue item",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["patientId","triageLevel"],
+                "properties": {
+                  "patientId": { "type": "integer" },
+                  "triageLevel": { "type": "string", "enum": ["low","medium","high","critical"] },
+                  "status": { "type": "string", "enum": ["waiting","in_progress","done","canceled"] }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Created" }, "422": { "description": "Validation error" } }
+      }
+    },
+    "/api/v1/users": {
+      "get": {
+        "tags": ["Users"],
+        "summary": "List users",
+        "security": [ { "bearerAuth": [] } ],
+        "responses": { "200": { "description": "OK" } }
+      },
+      "post": {
+        "tags": ["Users"],
+        "summary": "Create user",
+        "security": [ { "bearerAuth": [] } ],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/User" } } } },
+        "responses": { "201": { "description": "Created" }, "422": { "description": "Validation error" } }
+      }
+    },
+    "/api/v1/users/{id}": {
+      "get": { "tags": ["Users"], "summary": "Get user", "security": [ { "bearerAuth": [] } ], "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } } ], "responses": { "200": { "description": "OK" }, "404": { "description": "Not found" } } },
+      "put": { "tags": ["Users"], "summary": "Update user", "security": [ { "bearerAuth": [] } ], "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } } ], "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/User" } } } }, "responses": { "200": { "description": "OK" }, "404": { "description": "Not found" }, "422": { "description": "Validation error" } } },
+      "delete": { "tags": ["Users"], "summary": "Delete user", "security": [ { "bearerAuth": [] } ], "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } } ], "responses": { "200": { "description": "OK" }, "404": { "description": "Not found" } } }
+    },
+    "/api/v1/search": {
+      "get": {
+        "tags": ["Search"],
+        "summary": "Search patients and doctors",
+        "security": [ { "bearerAuth": [] } ],
+        "parameters": [ { "name": "q", "in": "query", "schema": { "type": "string" } } ],
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+    "/api/v1/queue/{id}": {
+      "put": {
+        "tags": ["Queue"],
+        "summary": "Update queue item",
+        "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } } ],
+        "requestBody": {
+          "content": { "application/json": { "schema": { "type": "object", "properties": {
+            "status": { "type": "string", "enum": ["waiting","in_progress","done","canceled"] },
+            "triageLevel": { "type": "string", "enum": ["low","medium","high","critical"] }
+          } } } }
+        },
+        "responses": { "200": { "description": "OK" }, "404": { "description": "Not found" }, "422": { "description": "Validation error" } }
+      },
+      "delete": {
+        "tags": ["Queue"],
+        "summary": "Delete queue item",
+        "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } } ],
+        "responses": { "200": { "description": "OK" }, "404": { "description": "Not found" } }
+      }
+    },
+    "/api/v1/consultations": {
+      "post": {
+        "tags": ["Consultations"],
+        "summary": "Create consultation",
+        "security": [ { "bearerAuth": [] } ],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Consultation" } } } },
+        "responses": { "201": { "description": "Created" }, "422": { "description": "Validation error" } }
+      }
+    },
+    "/api/v1/patients/{id}/consultations": {
+      "get": {
+        "tags": ["Consultations"],
+        "summary": "List consultations for a patient",
+        "security": [ { "bearerAuth": [] } ],
+        "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } } ],
+        "responses": { "200": { "description": "OK" }, "404": { "description": "Not found" } }
+      }
+    },
+    "/api/v1/consultations/{id}": {
+      "get": {
+        "tags": ["Consultations"],
+        "summary": "Get consultation by ID",
+        "security": [ { "bearerAuth": [] } ],
+        "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } } ],
+        "responses": { "200": { "description": "OK" }, "404": { "description": "Not found" } }
+      }
+    }
+  },
+  "security": [ { "bearerAuth": [] } ]
+}

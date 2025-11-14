@@ -146,7 +146,7 @@ export default function PatientList({ onEdit, onDelete, onSendToQueue, filters, 
           <li 
             key={patientId} 
             onClick={() => router.push(`/dashboard/patients/${patientId}`)}
-            className="relative bg-white rounded-lg p-5 border border-gray-200 hover:shadow-md transition cursor-pointer"
+            className="relative bg-white rounded-xl p-5 border border-gray-200 hover:shadow-md transition cursor-pointer"
           >
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-center gap-3 min-w-0">

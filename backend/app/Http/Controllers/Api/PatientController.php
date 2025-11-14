@@ -7,7 +7,14 @@ use App\Services\PatientService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use OpenApi\Annotations as OA;
 
+/**
+ * @OA\Tag(
+ *   name="Patients",
+ *   description="Patient management endpoints"
+ * )
+ */
 class PatientController extends Controller
 {
     protected PatientService $patientService;
@@ -19,6 +26,15 @@ class PatientController extends Controller
 
     /**
      * Display a listing of patients.
+     *
+     * @OA\Get(
+     *   path="/api/v1/patients",
+     *   tags={"Patients"},
+     *   summary="List patients",
+     *   @OA\Parameter(name="per_page", in="query", description="Items per page", @OA\Schema(type="integer")),
+     *   @OA\Parameter(name="search", in="query", description="Search query", @OA\Schema(type="string")),
+     *   @OA\Response(response=200, description="OK")
+     * )
      */
     public function index(Request $request): JsonResponse
     {
@@ -50,6 +66,18 @@ class PatientController extends Controller
 
     /**
      * Store a newly created patient.
+     *
+     * @OA\Post(
+     *   path="/api/v1/patients",
+     *   tags={"Patients"},
+     *   summary="Create patient",
+     *   @OA\RequestBody(
+     *     required=true,
+     *     @OA\JsonContent(type="object")
+     *   ),
+     *   @OA\Response(response=201, description="Created"),
+     *   @OA\Response(response=422, description="Validation error")
+     * )
      */
     public function store(Request $request): JsonResponse
     {
@@ -84,6 +112,15 @@ class PatientController extends Controller
 
     /**
      * Display the specified patient.
+     *
+     * @OA\Get(
+     *   path="/api/v1/patients/{id}",
+     *   tags={"Patients"},
+     *   summary="Get patient",
+     *   @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
+     *   @OA\Response(response=200, description="OK"),
+     *   @OA\Response(response=404, description="Not found")
+     * )
      */
     public function show(int $id): JsonResponse
     {
@@ -113,6 +150,20 @@ class PatientController extends Controller
 
     /**
      * Update the specified patient.
+     *
+     * @OA\Put(
+     *   path="/api/v1/patients/{id}",
+     *   tags={"Patients"},
+     *   summary="Update patient",
+     *   @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
+     *   @OA\RequestBody(
+     *     required=true,
+     *     @OA\JsonContent(type="object")
+     *   ),
+     *   @OA\Response(response=200, description="OK"),
+     *   @OA\Response(response=404, description="Not found"),
+     *   @OA\Response(response=422, description="Validation error")
+     * )
      */
     public function update(Request $request, int $id): JsonResponse
     {
@@ -147,6 +198,15 @@ class PatientController extends Controller
 
     /**
      * Remove the specified patient.
+     *
+     * @OA\Delete(
+     *   path="/api/v1/patients/{id}",
+     *   tags={"Patients"},
+     *   summary="Delete patient",
+     *   @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
+     *   @OA\Response(response=200, description="OK"),
+     *   @OA\Response(response=404, description="Not found")
+     * )
      */
     public function destroy(int $id): JsonResponse
     {
