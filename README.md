@@ -11,7 +11,7 @@ It improves patient flow, reduces nurse workload, and provides instant access to
 - Form-level offline edits with background sync on reconnect  
 - **Virtual Assistant** (offline-first, local WHO + Rwanda manuals, citations, documentation browser)  
 - **Smart Multilingual Consultation** (Speech-to-Text + Smart analysis)  
-- Real-time queue management and triage dashboard  
+- **Real-time queue management and triage** dashboard  
 - Consultation assistant with prefilled patient data  
 - Integrated micro-learning and clinical guidelines (Knowledge Hub)  
 - SMS notifications for patient queue updates  
@@ -163,56 +163,6 @@ docker-compose restart frontend
 
 ---
 
-## Offline Strategy
-
-We support form-level offline editing and saving for critical workflows.
-
-- Service Worker: caches the app shell and static assets for smooth navigation.
-- Local Storage: cache reads and store pending writes.
-- Sync Queue: when offline, saves are enqueued and retried on reconnect.
-- Optimistic UI: reflect local changes immediately, then reconcile on sync.
-
-### Data Flow
-
-Read operations
-- Serve from local cache first, then validate/refresh with network when available.
-
-Write operations
-- Save locally with status=pending and enqueue the request for background sync.
-- When back online, the queue flushes and updates the server.
-
-Conflict resolution
-- Prefer timestamp-based resolution; fall back to manual merge where needed.
-
-Backend strategy
-- Provide idempotent sync endpoints for batch operations (create/update).
-- Detect conflicts via updated_at/version and return details for merge.
-
-### Files
-
-- Public Service Worker: `Frontend/public/sw.js` (network-first for API; cache-first for assets)
-- SW registration and offline banner: `Frontend/src/components/ServiceWorkerProvider.tsx` and wired in `Frontend/src/app/layout.tsx`
-- Minimal sync queue utility: `Frontend/src/lib/offline/syncQueue.ts`
-
-### How to use
-
-- The service worker auto-registers on first load (in supported browsers).
-- To enqueue a write when offline:
-  ```ts
-  import { enqueue, flushQueue } from '@/lib/offline/syncQueue';
-  enqueue('http://localhost:8000/api/v1/patients', { method: 'POST', body: JSON.stringify({ ... }) });
-  // Later, when back online
-  await flushQueue();
-  ```
-
-### Test offline
-
-- Open DevTools → Network → Offline; navigate the app and perform actions.
-- Note the yellow banner indicating offline mode.
-- Go back online; the queue flushes automatically.
-
----
-
 ## Testing & Quality
 
 - Backend: PHPUnit feature + unit tests  
@@ -223,7 +173,7 @@ Backend strategy
 ### Running tests
 - Frontend
   ```bash
-  cd Frontend && npm test
+  docker-compose exec frontend npm test
   ```
 - Backend
   ```bash
@@ -231,27 +181,6 @@ Backend strategy
   ```
 
 Unit tests cover queue duplicate prevention, SearchDropdown modal actions and closing behavior, and API contract basics.
-
----
-
-## Virtual Assistant
-
-The Virtual Assistant helps clinicians quickly find answers from trusted local sources and works offline.
-
-- Data source: local JSON at `Frontend/public/references/index.json`
-- Sources: WHO clinical guidelines and Rwandan health manuals
-- Features: keyword search, synthesized answers with citations, documentation browser at `/dashboard/docs`
-- Access: via Topbar "Virtual Assistant" or `/dashboard/assistant`
-
-How it’s built (brief):
-- Keyword retriever over local JSON references, client-side rendering of citations and docs.
-- No external model is required; runs fully in the browser.
-
-How to update its “intelligence”:
-- Edit `Frontend/public/references/index.json` (add/curate entries, tags, and content). Changes are picked up on refresh.
-
-### Learn more
-- Documentation: [DOCUMENTATION.md](./DOCUMENTATION.md)
 
 ---
 
@@ -366,14 +295,73 @@ How to update its “intelligence”:
 5. Review and edit if needed
 6. Click "Generate Report" → Print/Download PDF
 
+
+---
+
+## Virtual Assistant
+
+The Virtual Assistant helps clinicians quickly find answers from trusted local sources and works offline.
+
+- Data source: local JSON at `Frontend/public/references/index.json`
+- Sources: WHO clinical guidelines and Rwandan health manuals
+- Features: keyword search, synthesized answers with citations, documentation browser at `/dashboard/docs`
+- Access: via Topbar "Virtual Assistant" or `/dashboard/assistant`
+
+How it’s built (brief):
+- Keyword retriever over local JSON references, client-side rendering of citations and docs.
+- No external model is required; runs fully in the browser.
+
+How to update its “intelligence”:
+- Edit `Frontend/public/references/index.json` (add/curate entries, tags, and content). Changes are picked up on refresh.
+
+---
+
 ### Browser Compatibility
 - ✅ Chrome/Edge (full support)
 - ✅ Safari (full support)  
 - ⚠️ Firefox (limited - Web Speech API not supported)
 
-📖 **Full Documentation**: See [`docs/CONSULTATION_FEATURE.md`](docs/CONSULTATION_FEATURE.md) for detailed technical implementation.
+---
+
+## Future Vision (6 months)
+
+- Full offline with local mirror DB
+  - Solution: Ship a local-first database (e.g., SQLite/IndexedDB with background replication, CRDT-friendly merges). Sync to Laravel when online.
+  - Impact: App runs fully offline for days; zero data loss in connectivity deserts.
+
+- SMS-first workflows
+  - Solution: Token/triage notifications, appointment reminders, follow-up prompts via SMS; simple USSD for basic actions.
+  - Impact: Reaches patients without smartphones; reduces no-shows and crowding.
+
+- Smart Consultation v2 (on-device)
+  - Solution: WASM ASR (Vosk/Whisper.cpp) and small on-device models for better offline STT and smarter, local analysis.
+  - Impact: Higher accuracy and reliability without internet; multilingual robustness.
+
+- Health-specialized Assistant (local RAG)
+  - Solution: Retrieval-augmented generation over clinic + national protocols, with guardrails; prefer local models when feasible.
+  - Impact: Faster, trustworthy guidance aligned to national standards; reduces cognitive load.
+
+- Portable Patient Record (QR/NFC card)
+  - Solution: Patient card with QR (and optional NFC) embedding a compact, signed summary or locator to fetch full data on consent.
+  - Impact: Continuity of care across clinics even without internet; helps referrals and return visits.
+
+- Multi-clinic (multi-tenant) with shared directory
+  - Solution: Tenant isolation by clinic, with a consented regional patient directory to discover/import records.
+  - Impact: Data follows the patient; clinics keep autonomy while enabling secure interoperability.
+
+- Queue hardware and kiosks
+  - Solution: Low-cost token dispensers/kiosks for check-in; visible wait-time boards.
+  - Impact: Smoother flow, less front-desk pressure, clearer expectations.
+
+- Outcomes & quality analytics
+  - Solution: Dashboards for throughput, wait times, triage distribution, follow-ups; SMS campaign effectiveness.
+  - Impact: Managers see bottlenecks and improvements; supports funding and oversight.
+
 
 ---
+
+### Learn more
+- Documentation: [DOCUMENTATION.md](./DOCUMENTATION.md)
 
 ## License
 
