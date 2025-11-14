@@ -4,6 +4,11 @@
 It improves patient flow, reduces nurse workload, and provides instant access to medical knowledge — even with poor connectivity.
 
 ---
+# WARNING: Before anything
+- **Make sure you merged the final PR** to have the latest project with the updated README.md documentation
+  - You will find some minor instructionn under the commet of the PR
+  - Link to the PR: https://github.com/VianneyR4/eClinic/pull/25 
+---
 
 ## Architecture & Practices (Short Notes)
 
