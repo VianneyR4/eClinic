@@ -31,6 +31,23 @@ export default function AppointmentModal({ patient, isOpen, onClose, onSuccess }
     setLoading(true);
 
     try {
+      // Re-check queue to avoid duplicates (race condition protection)
+      try {
+        const existing = await apiService.getQueue();
+        const items = existing?.data || [];
+        const alreadyQueued = Array.isArray(items)
+          ? items.some((it: any) => it?.patientId === patient.id && (it?.status === 'waiting' || it?.status === 'in_progress'))
+          : false;
+        if (alreadyQueued) {
+          alert('This patient is already in the active queue.');
+          return;
+        }
+      } catch (checkErr) {
+        console.error('Error verifying queue status:', checkErr);
+        alert('Could not verify queue status. Please try again.');
+        return;
+      }
+
       const response = await apiService.createQueueItem({
         patientId: patient.id,
         triageLevel,

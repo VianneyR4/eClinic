@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { More, Profile, Call, Sms, Location, Add, ArrowRight2 } from 'iconsax-react';
+import { More, Profile, Call, Sms, Location, Add, ArrowRight2, CloseSquare } from 'iconsax-react';
 import { apiService } from '@/services/api';
 import PatientForm from './PatientForm';
 import DoctorForm from './DoctorForm';
@@ -50,6 +50,8 @@ export default function SearchDropdown({ query, onClose }: SearchDropdownProps) 
   const [showDoctorForm, setShowDoctorForm] = useState(false);
   const [newPatient, setNewPatient] = useState<any>(null);
   const [showAppointmentModal, setShowAppointmentModal] = useState(false);
+  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+  const [showPatientActionsModal, setShowPatientActionsModal] = useState(false);
 
   // Format address whether it's a string or an object
   const getAddressText = (
@@ -77,7 +79,7 @@ export default function SearchDropdown({ query, onClose }: SearchDropdownProps) 
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [onClose, showPatientForm, showDoctorForm, showAppointmentModal]);
+  }, [onClose, showPatientForm, showDoctorForm, showAppointmentModal, showPatientActionsModal]);
 
   useEffect(() => {
     if (!query.trim()) {
@@ -107,12 +109,16 @@ export default function SearchDropdown({ query, onClose }: SearchDropdownProps) 
 
   const handlePatientAction = (action: string, patient: Patient) => {
     setMenuOpenId(null);
+    setShowPatientActionsModal(false);
+    setSelectedPatient(null);
     if (action === 'view') {
       router.push(`/dashboard/patients/${patient.id}`);
       onClose();
     } else if (action === 'appointment') {
       setNewPatient(patient);
       setShowAppointmentModal(true);
+    } else if (action === 'send_to_queue') {
+      handleSendToQueue(patient);
     }
   };
 
@@ -162,12 +168,41 @@ export default function SearchDropdown({ query, onClose }: SearchDropdownProps) 
   const hasResults = patients.length > 0 || doctors.length > 0;
   const showEmptyState = query.trim() && !loading && !hasResults;
 
+  const handleSendToQueue = async (patient: Patient) => {
+    try {
+      const response = await apiService.getQueue();
+      const items = response?.data || [];
+      const alreadyQueued = Array.isArray(items)
+        ? items.some((it: any) => it?.patientId === patient.id && (it?.status === 'waiting' || it?.status === 'in_progress'))
+        : false;
+
+      if (alreadyQueued) {
+        alert('This patient is already in the active queue.');
+        return;
+      }
+    } catch (e) {
+      console.error('Error checking queue before enqueue:', e);
+      alert('Could not verify queue status. Please try again.');
+      return;
+    }
+
+    setNewPatient(patient);
+    setShowAppointmentModal(true);
+  };
+
   return (
     <>
       <div
         ref={dropdownRef}
-        className="w-full max-w-4xl bg-white rounded-lg shadow-xl border border-gray-200 z-50 max-h-[600px] overflow-hidden flex flex-col"
+        className="relative w-full max-w-4xl bg-white rounded-lg shadow-xl border border-gray-200 z-50 max-h-[600px] overflow-hidden flex flex-col"
       >
+        <button
+          aria-label="Close search"
+          onClick={onClose}
+          className="absolute top-2 right-2 p-1 rounded hover:bg-gray-100"
+        >
+          <CloseSquare size={20} className="text-gray-500" />
+        </button>
         {loading && (
           <div className="p-8 text-center text-gray-500">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
@@ -238,9 +273,16 @@ export default function SearchDropdown({ query, onClose }: SearchDropdownProps) 
                     </thead>
                     <tbody className="divide-y divide-gray-200">
                       {patients.map((patient) => (
-                        <tr key={patient.id} className="hover:bg-gray-50">
-                          <td className="px-4 py-3 text-sm text-gray-900">{patient.id}</td>
-                          <td className="px-4 py-3">
+                        <tr
+                          key={patient.id}
+                          className="hover:bg-gray-50 cursor-pointer"
+                          onClick={() => {
+                            setSelectedPatient(patient);
+                            setShowPatientActionsModal(true);
+                          }}
+                        >
+                          <td className="px-4 py-1 text-sm text-gray-900">{patient.id}</td>
+                          <td className="px-4 py-1">
                             {patient.photo ? (
                               <img src={patient.photo} alt={patient.fullName} className="w-10 h-10 rounded-full object-cover" />
                             ) : (
@@ -249,43 +291,13 @@ export default function SearchDropdown({ query, onClose }: SearchDropdownProps) 
                               </div>
                             )}
                           </td>
-                          <td className="px-4 py-3">
+                          <td className="px-4 py-1">
                             <div className="text-sm font-medium text-gray-900">{patient.fullName}</div>
                           
                           </td>
-                          <td className="px-4 py-3 text-sm text-gray-600">{patient.phone || '-'}</td>
-                          <td className="px-4 py-3 text-sm text-gray-600">{patient.email || '-'}</td>
-                          <td className="px-4 py-3">
-                            <div className="relative">
-                              <button
-                                onClick={() => setMenuOpenId(`patient-${patient.id}`)}
-                                className="p-1 hover:bg-gray-100 rounded"
-                              >
-                                <More size={16} className="text-gray-600" />
-                              </button>
-                              {menuOpenId === `patient-${patient.id}` && (
-                                <>
-                                  <div className="fixed inset-0 z-40" onClick={() => setMenuOpenId(null)}></div>
-                                  <div className="absolute right-0 mt-1 w-48 bg-white rounded-md shadow-lg border border-gray-200 py-1 z-50">
-                                    <button
-                                      onClick={() => handlePatientAction('appointment', patient)}
-                                      className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
-                                    >
-                                      <ArrowRight2 size={14} />
-                                      New Appointment
-                                    </button>
-                                    <button
-                                      onClick={() => handlePatientAction('view', patient)}
-                                      className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
-                                    >
-                                      <Profile size={14} />
-                                      View Detail
-                                    </button>
-                                  </div>
-                                </>
-                              )}
-                            </div>
-                          </td>
+                          <td className="px-4 py-1 text-sm text-gray-600">{patient.phone || '-'}</td>
+                          <td className="px-4 py-1 text-sm text-gray-600">{patient.email || '-'}</td>
+                          <td className="px-4 py-1 text-sm text-gray-500"><More size={25} className="px-1 rounded-md border border-bray-200" /></td>
                         </tr>
                       ))}
                     </tbody>
@@ -328,7 +340,7 @@ export default function SearchDropdown({ query, onClose }: SearchDropdownProps) 
                     <tbody className="divide-y divide-gray-200">
                       {doctors.map((doctor) => (
                         <tr key={doctor.id} className="hover:bg-gray-50">
-                          <td className="px-4 py-3 text-sm text-gray-900">{doctor.id}</td>
+                          <td className="px-4 py-3 text-xs text-gray-900">{doctor.id}</td>
                           <td className="px-4 py-3">
                             {doctor.photo ? (
                               <img src={doctor.photo} alt={doctor.fullName} className="w-10 h-10 rounded-full object-cover" />
@@ -339,20 +351,21 @@ export default function SearchDropdown({ query, onClose }: SearchDropdownProps) 
                             )}
                           </td>
                           <td className="px-4 py-3">
-                            <div className="text-sm font-medium text-gray-900">{doctor.fullName}</div>
+                            <div className="text-xs font-medium text-gray-900">{doctor.fullName}</div>
                             {doctor.specialty && (
                               <div className="text-xs text-gray-500 mt-1">{doctor.specialty}</div>
                             )}
                           </td>
-                          <td className="px-4 py-3 text-sm text-gray-600">{doctor.phone || '-'}</td>
-                          <td className="px-4 py-3 text-sm text-gray-600">{doctor.email || '-'}</td>
+                          <td className="px-4 py-3 text-xs text-gray-600">{doctor.phone || '-'}</td>
+                          <td className="px-4 py-3 text-xs text-gray-600">{doctor.email || '-'}</td>
                           <td className="px-4 py-3">
                             <div className="relative">
                               <button
                                 onClick={() => setMenuOpenId(`doctor-${doctor.id}`)}
                                 className="p-1 hover:bg-gray-100 rounded"
                               >
-                                <More size={16} className="text-gray-600" />
+
+                                <More size={25} className="px-1 text-gray-500 rounded-md border border-bray-200" />
                               </button>
                               {menuOpenId === `doctor-${doctor.id}` && (
                                 <>
@@ -427,6 +440,63 @@ export default function SearchDropdown({ query, onClose }: SearchDropdownProps) 
             setNewPatient(null);
           }}
         />
+      )}
+
+      {/* Patient Actions Modal */}
+      {showPatientActionsModal && selectedPatient && (
+        <>
+          <div className="fixed inset-0 bg-black/30 z-[60]" onClick={() => { setShowPatientActionsModal(false); setSelectedPatient(null); }} />
+          <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+            <div className="w-full max-w-md bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
+                <h3 className="text-sm font-semibold text-gray-800">Patient</h3>
+                <button className="p-1 rounded hover:bg-gray-100" onClick={() => { setShowPatientActionsModal(false); setSelectedPatient(null); }}>
+                  <CloseSquare size={20} className="text-gray-500" />
+                </button>
+              </div>
+              <div className="p-4 flex items-center gap-3">
+                {selectedPatient.photo ? (
+                  <img src={selectedPatient.photo} alt={selectedPatient.fullName} className="w-12 h-12 rounded-full object-cover" />
+                ) : (
+                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Profile size={20} className="text-primary" />
+                  </div>
+                )}
+                <div>
+                  <div className="text-xs font-semibold text-gray-900">{selectedPatient.fullName}</div>
+                  <div className="text-xs text-gray-600">ID: {selectedPatient.id}</div>
+                  <div className="text-xs text-gray-600">{selectedPatient.phone || '-'} · {selectedPatient.email || '-'}</div>
+                </div>
+              </div>
+              <div className="px-4 pb-4 pt-2 text-xs text-gray-500">
+                Choose an action
+              </div>
+              <div className="px-4 pb-4 grid grid-cols-1 gap-2">
+                <button
+                  onClick={() => handlePatientAction('appointment', selectedPatient)}
+                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 text-sm bg-primary text-white rounded-md hover:bg-opacity-90"
+                >
+                  <ArrowRight2 size={16} />
+                  New Appointment
+                </button>
+                <button
+                  onClick={() => handlePatientAction('send_to_queue', selectedPatient)}
+                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50"
+                >
+                  <ArrowRight2 size={16} />
+                  Send to queue
+                </button>
+                <button
+                  onClick={() => handlePatientAction('view', selectedPatient)}
+                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50"
+                >
+                  <Profile size={16} />
+                  View Detail
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
       )}
     </>
   );

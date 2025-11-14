@@ -9,7 +9,8 @@ It improves patient flow, reduces nurse workload, and provides instant access to
 
 ### Core Features
 - Offline-first patient registration and consultation  
-- **AI-Powered Multilingual Consultation** (Speech-to-Text + Auto-Summarization)
+- **Virtual Assistant** (offline-first, local WHO + Rwanda manuals, citations, documentation browser)  
+- **AI-Powered Multilingual Consultation** (Speech-to-Text + Auto-Summarization)  
 - Automatic background synchronization when online  
 - Real-time queue management and triage dashboard  
 - Consultation assistant with prefilled patient data  
@@ -162,12 +163,73 @@ docker-compose restart frontend
 
 ## Testing & Quality
 
-- Backend : PHPUnit feature + unit tests  
-- Frontend : Jest / React Testing Library  
-- Linting : ESLint + Prettier  
-- Code style : PSR-12 (PHP)  
+- Backend: PHPUnit feature + unit tests  
+- Frontend: Jest / React Testing Library  
+- Linting: ESLint + Prettier  
+- Code style: PSR-12 (PHP)  
+
+### Running tests
+- Frontend
+  ```bash
+  cd Frontend && npm test
+  ```
+- Backend
+  ```bash
+  docker-compose exec backend php artisan test
+  ```
+
+Unit tests cover queue duplicate prevention, SearchDropdown modal actions and closing behavior, and API contract basics.
 
 ---
+
+## Virtual Assistant
+
+The Virtual Assistant helps clinicians quickly find answers from trusted local sources and works fully offline.
+
+- Data source: local JSON at `Frontend/public/references/index.json`
+- Sources: WHO clinical guidelines and Rwandan health manuals
+- Features: keyword search, answer synthesis from retrieved chunks, citations, and a documentation browser at `/dashboard/docs`
+- Access: via Topbar "Virtual Assistant" button or `/dashboard/assistant`
+
+See the in-app Documentation page or the repository documentation below.
+
+### Learn more
+- Documentation: [DOCUMENTATION.md](./DOCUMENTATION.md)
+
+---
+
+## API Docs (Static OpenAPI)
+
+We serve Swagger UI statically via Apache (no Composer packages).
+
+- UI: http://localhost:8000/api/documentation/
+- Spec JSON: http://localhost:8000/api-docs/openapi.json
+- Files:
+  - Public UI: `backend/public/api/documentation/index.html`
+  - Spec: `backend/public/api-docs/openapi.json`
+
+To update the docs, edit `backend/public/api-docs/openapi.json` and refresh the page.
+
+### Backend one‑liner
+
+- Clear config cache and run tests
+  ```bash
+  docker-compose exec backend-app sh -lc 'php artisan config:clear && php artisan test'
+  ```
+
+## Three Key Problems We Solve
+
+- **Problem 1: The Waiting Room Crisis**
+  - Reality: 100–150 patients/day, 2–3 nurses, 4–6h waits, no visibility/triage.
+  - Solution: Real-time queue with triage, tokens, and patient status visibility; SMS updates.
+
+- **Problem 2: The Consultation Overload**
+  - Reality: Repeated questions, fragmented history, heavy admin burden, connectivity drops.
+  - Solution: Multilingual speech capture + local summarization; prefilled patient context; offline-first storage and sync.
+
+- **Problem 3: The Knowledge Gap**
+  - Reality: Limited training, protocols, specialist access; need quick, trustworthy answers offline.
+  - Solution: Virtual Assistant answers strictly from local WHO/Rwanda references with citations; browsable documentation.
 
 ## Smart Consultation Feature
 

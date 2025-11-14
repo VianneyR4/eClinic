@@ -114,7 +114,7 @@ export default function QueuePage() {
     <div className="w-full max-w-7xl mx-auto">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-semibold text-gray-800">Patient Queue</h1>
+        <p className="text-xl font-semibold text-gray-800">Patient Queue <span className="text-xs text-grey-300 font-xm">(Search a patient to add on the line queue)</span></p>
         <button
           onClick={loadQueueItems}
           className="px-4 py-2 text-sm border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100 transition"
@@ -131,10 +131,10 @@ export default function QueuePage() {
           return (
             <div
               key={col.id}
-              className="rounded-lg border border-gray-200 bg-white shadow-sm flex flex-col"
+              className="rounded-lg flex flex-col"
             >
               {/* Column header */}
-              <div className="p-4 border-b border-gray-200">
+              <div className="p-4 border bg-white rounded-xl border-gray-200">
                 <h2 className="text-sm font-semibold text-primary">{col.label}</h2>
                 <p className="text-xs text-gray-500 mt-1">
                   {items.length} patient{items.length !== 1 && 's'}
@@ -142,7 +142,7 @@ export default function QueuePage() {
               </div>
 
               {/* Cards */}
-              <div className="p-4 flex-1 overflow-y-auto space-y-3">
+              <div className="pt-2 pb-4 flex-1 overflow-y-auto space-y-2">
                 {items.length === 0 ? (
                   <div className="text-center py-8 text-gray-500 text-sm">
                     No patients
@@ -155,8 +155,8 @@ export default function QueuePage() {
                     return (
                       <div
                         key={item.id}
-                        className={`border border-gray-200 rounded-md p-4 hover:shadow-md transition ${
-                          isCurrent ? 'border-primary' : ''
+                        className={`border border-gray-200 bg-white rounded-xl p-4 hover:shadow-md transition ${
+                          isCurrent ? 'shadow-lg border-gray-200' : ''
                         }`}
                       >
                         {/* Patient info */}
