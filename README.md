@@ -5,6 +5,20 @@ It improves patient flow, reduces nurse workload, and provides instant access to
 
 ---
 
+## Architecture & Practices (Short Notes)
+
+- **Proper separation of concerns**
+  - Backend: Controllers → Services/Models → Resources; validation via Form Requests/Validator; routes under `routes/api.php`.
+  - Frontend: UI components (App Router) + `apiService` for HTTP; local sync queue isolated in `src/lib/offline`.
+
+- **Thoughtful error handling**
+  - Backend: Try/catch around DB/JWT/mail; clear HTTP status codes; user‑friendly messages; logs via Laravel `Log`.
+  - Frontend: Inline toasts/messages; fallbacks for offline; retries for queue flush; guarded navigation.
+
+- **Security best practices**
+  - JWT auth for API; hashed passwords; email verification with expiring codes; `.env` driven secrets; CORS restricted in server config.
+  - Debug verification code only in local/testing (or when `SHOW_VERIFICATION_CODE=true`). Never show in production.
+
 ## Overview
 
 ### Core Features
@@ -15,7 +29,10 @@ It improves patient flow, reduces nurse workload, and provides instant access to
 - Consultation assistant with prefilled patient data  
 - Integrated micro-learning and clinical guidelines (Knowledge Hub)  
 - SMS notifications for patient queue updates  
-- One-command Docker deployment  
+- One-command Docker deployment Or via github actions to deploy (We only deploy docker image on dockerhub)
+
+> How to test in the app: Use the seeded admin account to log in, explore Dashboard → Patients/Queue, and try the Consultation flow; offline edits can be tested by toggling browser offline.  
+> Real‑world usability: Designed for low-connectivity clinics with simple flows, offline-tolerant forms, SMS cues, and minimal training overhead.
 
 ---
 
@@ -60,6 +77,14 @@ When the setup completes, visit:
 - Frontend: http://localhost:3000  
 - Backend API: http://localhost:8000/api/v1  
 
+### Database seeding & first login
+- Migrations and seeders run automatically on backend container start.  
+- A default admin user is created:
+  - Email: `admin@gmail.com`
+  - Password: `admin123456`
+- First login uses 2‑step verification (email code). In local/testing, the API also returns `debug_verification_code` and the UI shows it for convenience.  
+  - Note: This debug display is only for non‑production; do not enable in production.
+
 **Run Tests**
 ```bash
 docker-compose exec backend-app php artisan test
@@ -90,14 +115,14 @@ eClinic/
 ### CI/CD
 - GitHub Actions runs tests on pull requests.  
 - Docker images built automatically.  
-- Deployment triggered on merge to `main`.  
+- Deployment triggered on merge to `main`. (we only deploy docker image on dockerhub) 
 - Project management integration through GitHub Projects / Linear.  
 
 ### Automation & Delivery
 - CI/CD Pipeline (`.github/workflows/ci-cd.yml`)
   - On PRs: build and test Frontend (Node 18) and Backend (PHP 8.2 + Postgres service).
   - On push to main: builds Frontend/Backend, runs tests; used by deployments.
-- Deploy on main (`.github/workflows/deploy.yml`)
+- Deploy on main (`.github/workflows/deploy.yml`) (we only deploy docker image on dockerhub) 
   - On push to main: logs into Docker registry and builds/pushes images for Frontend and Backend.
   - SSH deployment block is scaffolded and can be re-enabled to roll out to a server.
 - Community Automation (`.github/workflows/automation.yml`)
@@ -223,7 +248,7 @@ To update the docs, edit `backend/public/api-docs/openapi.json` and refresh the 
 ## Smart Consultation Feature
 
 ### Overview
-The consultation feature uses **browser-native speech recognition** combined with **local AI summarization** to streamline patient consultations. Doctors can speak naturally in multiple languages, and the system automatically extracts medical information.
+The consultation feature uses **browser-native speech recognition** combined with **local Smart summarization** to streamline patient consultations. Doctors can speak naturally in multiple languages, and the system automatically extracts medical information.
 
 ### How It Works
 
@@ -240,7 +265,7 @@ The consultation feature uses **browser-native speech recognition** combined wit
 
 #### 2. **Local Translation**
 - **Type**: Dictionary-based keyword translation
-- **Purpose**: Translate French/Kinyarwanda medical terms to English before AI analysis
+- **Purpose**: Translate French/Kinyarwanda medical terms to English before Smart analysis
 - **Storage**: Each speech segment stored with original language metadata
 - **Example**: `"j'ai mal à la tête"` → `"I have head pain"`
 
@@ -253,16 +278,16 @@ The consultation feature uses **browser-native speech recognition** combined wit
   - **Treatment**: Auto-suggests based on symptoms (headache → paracetamol, fever → rest + hydration)
 
 #### 4. **Doctor Review & Edit**
-- All AI-generated fields are **fully editable**
+- All Smart-generated fields are **fully editable**
 - Doctor can:
   - Manually edit transcript
   - Modify symptoms, diagnosis, treatment
   - Add additional notes
-  - Click "Regenerate" to re-run AI on edited transcript
+  - Click "Regenerate" to re-run Smart analysis on edited transcript
   - Click "Restart" to clear everything (with confirmation)
 
 #### 5. **Report Generation**
-- **Content**: Patient info, vitals, transcript, AI summary, notes
+- **Content**: Patient info, vitals, transcript, Smart analysis summary, notes
 - **Design**: Professional layout with clinic branding and QR code
 - **Output**: Print-ready PDF via browser's print dialog
 - **Process**: 5-second loader → auto-scroll to report → print/download
@@ -291,7 +316,7 @@ How to update its “intelligence”:
 1. Navigate to patient detail → "New appointment" tab
 2. Select language (🇺🇸 English / 🇫🇷 Français / 🇷🇼 Kinyarwanda)
 3. Click "Start" and speak: *"Patient has headache and belly pain for 3 days"*
-4. AI extracts: Symptoms: `headache, belly, pain` | Duration: `3 days` | Diagnosis: `gastritis or migraine`
+4. The Smart analysis summarizer extracts: Symptoms: `headache, belly, pain` | Duration: `3 days` | Diagnosis: `gastritis or migraine`
 5. Review and edit if needed
 6. Click "Generate Report" → Print/Download PDF
 
@@ -357,11 +382,6 @@ How to update its “intelligence”:
   - Solution: Dashboards for throughput, wait times, triage distribution, follow-ups; SMS campaign effectiveness.
   - Impact: Managers see bottlenecks and improvements; supports funding and oversight.
 
-
----
-
-### Learn more
-- Documentation: [DOCUMENTATION.md](./DOCUMENTATION.md)
 
 ## License
 
