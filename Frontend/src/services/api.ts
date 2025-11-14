@@ -195,6 +195,12 @@ class ApiService {
     return response.data;
   }
 
+  // Email consultation report
+  async emailConsultationReport(consultationId: number | string, email: string, html: string) {
+    const response = await this.client.post(`/v1/consultations/${consultationId}/email-report`, { email, html });
+    return response.data;
+  }
+
   // Generic request method
   async request<T = any>(config: AxiosRequestConfig): Promise<T> {
     const response = await this.client.request<T>(config);

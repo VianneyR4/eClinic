@@ -10,7 +10,7 @@ import {
   Health,
   Bubble,
 } from "iconsax-react";
-import logo from "../assets/preclinic_logo.png";
+import logo from "../assets/patient_bg.png";
 import { useEffect, useState } from "react";
 
 interface SidebarProps {
@@ -98,13 +98,23 @@ export default function Sidebar({ isCollapsed, onToggle, onClose }: SidebarProps
       {/* Header */}
       <div className="p-3 mb-4 h-14 border-b border-gray-200 flex items-center justify-between transition-all duration-500 ease-in-out">
         {!isCollapsed && (
-          <img
-            src={logo.src}
-            className="pl-2 transition-all duration-500 ease-in-out"
-            alt="eClinic"
-            width={100}
-            height={100}
-          />
+          // <img
+          //   src={logo.src}
+          //   className="pl-2 transition-all duration-500 ease-in-out"
+          //   alt="eClinic"
+          //   width={100}
+          //   height={100}
+          // />
+
+
+          <div className="flex items-center gap-2 mb-2">
+            <Health size={25} className="text-gray-700" />
+            <div>
+                <div className="text-lg font-bold text-gray-800">eClinic</div>
+                <div className="text-gray-500" style={{ fontSize: "12px", marginTop: "-5px"}}>Healthcare MS</div>
+            </div>
+          </div>
+
         )}
         <div className="flex items-center gap-2 ml-auto">
           <button

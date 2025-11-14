@@ -53,5 +53,6 @@ Route::prefix('v1')->middleware('any.jwt')->group(function () {
     Route::post('consultations', [\App\Http\Controllers\Api\ConsultationController::class, 'store']);
     Route::get('patients/{id}/consultations', [\App\Http\Controllers\Api\ConsultationController::class, 'indexByPatient']);
     Route::get('consultations/{id}', [\App\Http\Controllers\Api\ConsultationController::class, 'show']);
+    Route::post('consultations/{id}/email-report', [\App\Http\Controllers\Api\ConsultationController::class, 'emailReport']);
 });
 

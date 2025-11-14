@@ -219,6 +219,16 @@ export default function LoginPage() {
                 </div>
               </div>
 
+              {debugCode && (
+                <div className="mb-4 border border-yellow-200 rounded-md p-3 bg-yellow-50 text-sm">
+                  <p className="font-medium text-yellow-800">Test-only: Verification Code</p>
+                  <p className="text-yellow-800">
+                    Use this code in local/testing environments: <span className="font-mono font-semibold">{debugCode}</span>
+                  </p>
+                  {/* NOTE: Do not display this in production. Controlled by backend env and local/testing checks. */}
+                </div>
+              )}
+
               <form onSubmit={handleVerify} className="space-y-4">
                 <div>
                   <label
