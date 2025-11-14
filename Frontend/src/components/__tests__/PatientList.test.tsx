@@ -1,18 +1,31 @@
 import { render, screen } from '@testing-library/react'
 import PatientList from '../PatientList'
 
-// Mock the API service
-jest.mock('../../services/api', () => ({
+// Mock Next.js router used by the component
+jest.mock('next/navigation', () => ({
   __esModule: true,
-  default: {
-    getPatients: jest.fn(),
+  useRouter: () => ({ push: jest.fn(), refresh: jest.fn() }),
+}))
+
+// Mock the API service with the correct alias and shape
+jest.mock('@/services/api', () => ({
+  __esModule: true,
+  apiService: {
+    getPatients: jest.fn(async () => ({
+      success: true,
+      data: [
+        { id: 1, first_name: 'Jane', last_name: 'Doe', email: 'jane@example.com' },
+      ],
+    })),
+    deletePatient: jest.fn(async () => ({ success: true })),
   },
 }))
 
 describe('PatientList', () => {
-  it('renders without crashing', () => {
+  it('renders a patient list', async () => {
     render(<PatientList />)
-    expect(screen.getByRole('list')).toBeInTheDocument()
+    // wait for the async load to finish and list to appear
+    expect(await screen.findByRole('list')).toBeInTheDocument()
   })
 })
 

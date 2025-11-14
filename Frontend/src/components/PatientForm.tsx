@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, FormEvent, useEffect } from 'react';
+import type { ChangeEvent } from 'react';
 import { apiService } from '@/services/api';
 
 interface PatientFormProps {
@@ -153,7 +154,7 @@ export default function PatientForm({ patient, onSave, onCancel }: PatientFormPr
   const handleChange = (field: string, value: any) => {
     if (field.startsWith('address.')) {
       const addressField = field.split('.')[1];
-      setFormData((prev) => ({
+      setFormData((prev: any) => ({
         ...prev,
         address: {
           ...prev.address,
@@ -162,7 +163,7 @@ export default function PatientForm({ patient, onSave, onCancel }: PatientFormPr
       }));
     } else if (field.startsWith('vitalSigns.')) {
       const vitalField = field.split('.')[1];
-      setFormData((prev) => ({
+      setFormData((prev: any) => ({
         ...prev,
         vitalSigns: {
           ...prev.vitalSigns,
@@ -170,7 +171,7 @@ export default function PatientForm({ patient, onSave, onCancel }: PatientFormPr
         },
       }));
     } else {
-      setFormData((prev) => ({
+      setFormData((prev: any) => ({
         ...prev,
         [field]: value,
       }));
@@ -190,30 +191,30 @@ export default function PatientForm({ patient, onSave, onCancel }: PatientFormPr
           <h2 className="text-base font-semibold text-gray-800 border-b pb-2">Personal Information</h2>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Input label="First Name *" value={formData.firstName} onChange={(e) => handleChange('firstName', e.target.value)} />
-            <Input label="Last Name *" value={formData.lastName} onChange={(e) => handleChange('lastName', e.target.value)} />
+            <Input label="First Name *" value={formData.firstName} onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange('firstName', e.target.value)} />
+            <Input label="Last Name *" value={formData.lastName} onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange('lastName', e.target.value)} />
           </div>
 
-          <Input label="Email" type="email" value={formData.email} onChange={(e) => handleChange('email', e.target.value)} />
-          <Input label="ID Number" value={formData.idNumber} onChange={(e) => handleChange('idNumber', e.target.value)} />
-          <Input label="Phone" type="tel" value={formData.phone} onChange={(e) => handleChange('phone', e.target.value)} />
+          <Input label="Email" type="email" value={formData.email} onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange('email', e.target.value)} />
+          <Input label="ID Number" value={formData.idNumber} onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange('idNumber', e.target.value)} />
+          <Input label="Phone" type="tel" value={formData.phone} onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange('phone', e.target.value)} />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Input label="Date of Birth" type="date" value={formData.dateOfBirth} onChange={(e) => handleChange('dateOfBirth', e.target.value)} />
-            <Input label="Birthday" type="date" value={formData.birthday} onChange={(e) => handleChange('birthday', e.target.value)} />
+            <Input label="Date of Birth" type="date" value={formData.dateOfBirth} onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange('dateOfBirth', e.target.value)} />
+            <Input label="Birthday" type="date" value={formData.birthday} onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange('birthday', e.target.value)} />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Select label="Gender" value={formData.gender} onChange={(e) => handleChange('gender', e.target.value)} options={["Male", "Female"]} />
+            <Select label="Gender" value={formData.gender} onChange={(e: ChangeEvent<HTMLSelectElement>) => handleChange('gender', e.target.value)} options={["Male", "Female"]} />
             <Select
               label="Blood Group"
               value={formData.bloodGroup}
-              onChange={(e) => handleChange('bloodGroup', e.target.value)}
+              onChange={(e: ChangeEvent<HTMLSelectElement>) => handleChange('bloodGroup', e.target.value)}
               options={["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"]}
             />
           </div>
 
-          <Input label="Photo URL" type="url" value={formData.photo} onChange={(e) => handleChange('photo', e.target.value)} placeholder="https://example.com/photo.jpg" />
+          <Input label="Photo URL" type="url" value={formData.photo} onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange('photo', e.target.value)} placeholder="https://example.com/photo.jpg" />
         </section>
 
         {/* --- Vital Signs --- */}
@@ -221,12 +222,12 @@ export default function PatientForm({ patient, onSave, onCancel }: PatientFormPr
           <h2 className="text-base font-semibold text-gray-800 border-b pb-2">Vital Signs</h2>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Input label="Blood Pressure" value={formData.vitalSigns.bloodPressure} onChange={(e) => handleChange('vitalSigns.bloodPressure', e.target.value)} placeholder="e.g., 120/80" />
-            <Input label="Heart Rate (bpm)" type="number" value={formData.vitalSigns.heartRate} onChange={(e) => handleChange('vitalSigns.heartRate', e.target.value)} placeholder="e.g., 72" />
-            <Input label="SPO2 (%)" type="number" value={formData.vitalSigns.spo2} onChange={(e) => handleChange('vitalSigns.spo2', e.target.value)} placeholder="e.g., 98" />
-            <Input label="Temperature (°C)" type="number" step="0.1" value={formData.vitalSigns.temperature} onChange={(e) => handleChange('vitalSigns.temperature', e.target.value)} placeholder="e.g., 36.5" />
-            <Input label="Respiratory Rate (bpm)" type="number" value={formData.vitalSigns.respiratoryRate} onChange={(e) => handleChange('vitalSigns.respiratoryRate', e.target.value)} placeholder="e.g., 16" />
-            <Input label="Weight (kg)" type="number" step="0.1" value={formData.vitalSigns.weight} onChange={(e) => handleChange('vitalSigns.weight', e.target.value)} placeholder="e.g., 70" />
+            <Input label="Blood Pressure" value={formData.vitalSigns.bloodPressure} onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange('vitalSigns.bloodPressure', e.target.value)} placeholder="e.g., 120/80" />
+            <Input label="Heart Rate (bpm)" type="number" value={formData.vitalSigns.heartRate} onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange('vitalSigns.heartRate', e.target.value)} placeholder="e.g., 72" />
+            <Input label="SPO2 (%)" type="number" value={formData.vitalSigns.spo2} onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange('vitalSigns.spo2', e.target.value)} placeholder="e.g., 98" />
+            <Input label="Temperature (°C)" type="number" step="0.1" value={formData.vitalSigns.temperature} onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange('vitalSigns.temperature', e.target.value)} placeholder="e.g., 36.5" />
+            <Input label="Respiratory Rate (bpm)" type="number" value={formData.vitalSigns.respiratoryRate} onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange('vitalSigns.respiratoryRate', e.target.value)} placeholder="e.g., 16" />
+            <Input label="Weight (kg)" type="number" step="0.1" value={formData.vitalSigns.weight} onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange('vitalSigns.weight', e.target.value)} placeholder="e.g., 70" />
           </div>
         </section>
 
@@ -235,7 +236,7 @@ export default function PatientForm({ patient, onSave, onCancel }: PatientFormPr
           <h2 className="text-base font-semibold text-gray-800 border-b pb-2">Medical History</h2>
           <textarea
             value={formData.medicalHistory}
-            onChange={(e) => handleChange('medicalHistory', e.target.value)}
+            onChange={(e: ChangeEvent<HTMLTextAreaElement>) => handleChange('medicalHistory', e.target.value)}
             className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-primary focus:border-transparent outline-none"
             rows={4}
             placeholder="Enter medical history (text or JSON format)"
@@ -245,12 +246,12 @@ export default function PatientForm({ patient, onSave, onCancel }: PatientFormPr
         {/* --- Address --- */}
         <section className="bg-white p-6 rounded-xl shadow-sm space-y-4">
           <h2 className="text-base font-semibold text-gray-800 border-b pb-2">Address</h2>
-          <Input label="Street" value={formData.address.street} onChange={(e) => handleChange('address.street', e.target.value)} />
+          <Input label="Street" value={formData.address.street} onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange('address.street', e.target.value)} />
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Input label="City" value={formData.address.city} onChange={(e) => handleChange('address.city', e.target.value)} />
-            <Input label="State" value={formData.address.state} onChange={(e) => handleChange('address.state', e.target.value)} />
+            <Input label="City" value={formData.address.city} onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange('address.city', e.target.value)} />
+            <Input label="State" value={formData.address.state} onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange('address.state', e.target.value)} />
           </div>
-          <Input label="Zip Code" value={formData.address.zipCode} onChange={(e) => handleChange('address.zipCode', e.target.value)} />
+          <Input label="Zip Code" value={formData.address.zipCode} onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange('address.zipCode', e.target.value)} />
         </section>
       </form>
 
@@ -280,20 +281,23 @@ export default function PatientForm({ patient, onSave, onCancel }: PatientFormPr
 
 
 /* --- Reusable Input and Select Components --- */
-function Input({ label, type = "text", ...props }) {
+function Input({ label, type = "text", value, onChange, placeholder, step }: { label: string; type?: string; value?: string | number; onChange?: (e: ChangeEvent<HTMLInputElement>) => void; placeholder?: string; step?: number | string }) {
   return (
     <div>
       <label className="block text-xs font-medium text-gray-700 mb-1.5">{label}</label>
       <input
         type={type}
-        {...props}
+        value={value as any}
+        onChange={onChange}
+        placeholder={placeholder}
+        step={step as any}
         className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-primary focus:border-transparent outline-none bg-white"
       />
     </div>
   );
 }
 
-function Select({ label, value, onChange, options }) {
+function Select({ label, value, onChange, options }: { label: string; value: string; onChange: (e: ChangeEvent<HTMLSelectElement>) => void; options: string[] }) {
   return (
     <div>
       <label className="block text-xs font-medium text-gray-700 mb-1.5">{label}</label>
@@ -303,7 +307,7 @@ function Select({ label, value, onChange, options }) {
         className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-primary focus:border-transparent outline-none bg-white"
       >
         <option value="">Select {label.toLowerCase()}</option>
-        {options.map((opt) => (
+        {options.map((opt: string) => (
           <option key={opt} value={opt}>{opt}</option>
         ))}
       </select>

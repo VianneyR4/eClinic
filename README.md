@@ -30,7 +30,7 @@ Frontend (Next.js)  ⇄  Backend (Laravel / REST API)
 
 **Frontend**
 - Next.js 14 (App Router), TypeScript, Tailwind CSS  
-- Local storage/IndexedDB for caching and a lightweight form-level sync queue  
+- Local storage for caching and a lightweight form-level sync queue  
 
 **Backend**
 - Laravel 11 (API first, modular architecture)  
@@ -168,7 +168,7 @@ docker-compose restart frontend
 We support form-level offline editing and saving for critical workflows.
 
 - Service Worker: caches the app shell and static assets for smooth navigation.
-- Local Storage/IndexedDB: cache reads and store pending writes.
+- Local Storage: cache reads and store pending writes.
 - Sync Queue: when offline, saves are enqueued and retried on reconnect.
 - Optimistic UI: reflect local changes immediately, then reconcile on sync.
 
@@ -382,24 +382,3 @@ MIT License – see `LICENSE` for details.
 ---
 
 **eClinic**  
-
-
-
-
-
-
-
-
-
-
-
-<!-- Notes and limitations
-Offline STT reality: The Web Speech API behavior offline varies by browser/platform. If you require guaranteed offline STT, we should embed a WASM engine (e.g., Vosk WASM or Whisper.cpp via WebAssembly). That needs model files shipped locally and is heavier. I can add this if you want.
-Local summarizer: The summarizer is rule-based to meet the no-internet requirement and runs fully in the browser. If you want smarter summaries offline, we can integrate a small on-device model (e.g., WebLLM/WebGPU) but this adds assets and complexity.
-Next steps (optional)
-Guaranteed offline STT: Integrate Vosk WASM and a small language model, add a toggle to switch engines.
-Language support: Set rec.lang (e.g., “en-US”, “fr-FR”, “rw-RW”) or match your clinic languages.
-Persist locally: Save transcript/summary to IndexedDB (RxDB) for later viewing.
-Filter menu content: Define actual filters for History table.
-Report branding: Add clinic logo/header/footer and QR code for record lookup.
-Task status: Implemented live speech-to-text, live local summarization, comment field, and a printable/downloadable report on the New appointment tab. -->
