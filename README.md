@@ -93,6 +93,17 @@ eClinic/
 - Deployment triggered on merge to `main`.  
 - Project management integration through GitHub Projects / Linear.  
 
+### Automation & Delivery
+- CI/CD Pipeline (`.github/workflows/ci-cd.yml`)
+  - On PRs: build and test Frontend (Node 18) and Backend (PHP 8.2 + Postgres service).
+  - On push to main: builds Frontend/Backend, runs tests; used by deployments.
+- Deploy on main (`.github/workflows/deploy.yml`)
+  - On push to main: logs into Docker registry and builds/pushes images for Frontend and Backend.
+  - SSH deployment block is scaffolded and can be re-enabled to roll out to a server.
+- Community Automation (`.github/workflows/automation.yml`)
+  - On PR open: creates a linked GitHub Issue, annotates the PR, optionally adds to a Project (requires PAT).
+  - On issue label changes: syncs labels to related PRs that reference the issue.
+
 ---
 
 ## API Reference
