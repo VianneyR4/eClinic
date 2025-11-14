@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import RxDBProvider from "../providers/RxDBProvider";
+import ServiceWorkerProvider from "../components/ServiceWorkerProvider";
 
 export const metadata: Metadata = {
   title: "eClinic - Healthcare Management System",
@@ -15,9 +15,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <RxDBProvider>
+        <ServiceWorkerProvider>
           {children}
-        </RxDBProvider>
+        </ServiceWorkerProvider>
       </body>
     </html>
   );

@@ -20,16 +20,12 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      redis:
-        condition: service_started
     environment:
       - DB_HOST=postgres
       - DB_PORT=5432
       - DB_DATABASE=eclinic
       - DB_USERNAME=postgres
       - DB_PASSWORD=postgres
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
       - RUN_TESTS_ON_BOOT=true
 
   # Frontend - Next.js
@@ -49,12 +45,9 @@ services:
       - eclinic-network
     environment:
       - NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
-      - NEXT_PUBLIC_COUCHDB_URL=http://couchdb:5984
-      - NEXT_PUBLIC_COUCHDB_DB_NAME=eclinic
       - NODE_ENV=development
     depends_on:
       - backend-app
-      - couchdb
 
   # Database - PostgreSQL
   postgres:
@@ -77,32 +70,7 @@ services:
       timeout: 5s
       retries: 5
 
-  # Cache - Redis
-  redis:
-    image: redis:7-alpine
-    container_name: eclinic-redis
-    restart: unless-stopped
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    networks:
-      - eclinic-network
-
-  # CouchDB for offline sync
-  couchdb:
-    image: couchdb:3.3
-    container_name: eclinic-couchdb
-    restart: unless-stopped
-    ports:
-      - "5984:5984"
-    environment:
-      - COUCHDB_USER=admin
-      - COUCHDB_PASSWORD=admin
-    volumes:
-      - couchdb_data:/opt/couchdb/data
-    networks:
-      - eclinic-network
+  
 
 networks:
   eclinic-network:
@@ -110,9 +78,5 @@ networks:
 
 volumes:
   postgres_data:
-    driver: local
-  redis_data:
-    driver: local
-  couchdb_data:
     driver: local
 

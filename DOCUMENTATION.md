@@ -39,35 +39,34 @@ We solve these because they are high-leverage: better flow, less cognitive load,
 ## Solution Overview
 
 - Queue and Triage
-  - Real-time queue dashboard with statuses (waiting, in_progress, done), token numbers, and triage levels.
-  - SMS updates optional for patient status.
+  - Real-time queue dashboard with statuses (waiting, in_progress, done), token numbers, and triage.
+  - Optional SMS updates for patient status.
 - Consultation Efficiency
-  - Multilingual speech capture with local summarization to prefill structured fields.
+  - Multilingual speech capture with smart analysis to prefill structured fields.
   - Fully editable by clinicians; print-ready reports.
 - Virtual Assistant and Documentation
-  - Offline-first knowledge powered by local JSON references (WHO + Rwanda manuals).
-  - Keyword retrieval and answer synthesis with citations.
+  - Offline-capable knowledge powered by local JSON references (WHO + Rwanda manuals).
+  - Keyword retrieval and synthesized answers with citations.
   - Browsable documentation page for manual exploration.
 
-Key principles: offline-first, local data, transparency, simple UI patterns.
+Key principles: local-first UX, transparent logic, simple UI patterns.
 
 ---
 
 ## Architecture
 
 - Frontend (Next.js 14, TypeScript, Tailwind)
-  - Offline storage via IndexedDB (RxDB if enabled) and local JSON for references (`public/references/index.json`).
-  - Virtual Assistant: keyword-based retrieval (`src/lib/references/retriever.ts`) and citation rendering.
+  - Local storage/IndexedDB for caching, plus a lightweight form-level sync queue for writes.
+  - Virtual Assistant: keyword-based retrieval (`Frontend/src/lib/references/retriever.ts`) and citation rendering.
   - Documentation UI: search + sidebar sourced from the same JSON reference index.
   - Queue UI: uses `apiService` to interact with backend for queue CRUD and status updates.
 
 - Backend (Laravel 11)
   - REST API under `/api/v1` for patients, queue, consultations, auth.
-  - PostgreSQL persistence; Redis for cache/queues.
+  - PostgreSQL persistence.
   - Duplicate-protection on active queue entries enforced at the application layer (tests included).
 
-- Sync and Infra
-  - Optional CouchDB replication for multi-device offline sync.
+- Infra
   - Docker Compose for local orchestration.
 
 ### Tradeoffs
@@ -80,17 +79,37 @@ Key principles: offline-first, local data, transparency, simple UI patterns.
 
 ## Future Vision (6 months)
 
-- Smart Retrieval
-  - Local embeddings and semantic search (WASM + on-device model) while preserving offline operation.
-  - Richer citation UX with paragraph-level highlights.
-- Decision Support
-  - Protocol-driven flows (IMCI, ANC, malaria) as interactive checklists that generate structured notes.
-- Integrated Triage Kiosk
-  - Patient-facing token dispenser or kiosk; clear wait-time estimates.
-- Offline STT & Translation
-  - Bundle offline ASR model(s) and small translation modules via WebAssembly and WebGPU acceleration.
-- Analytics & Quality
-  - Clinic-level dashboards on throughput, wait times, triage distribution, and follow-up compliance.
+- Full offline with local mirror DB
+  - Solution: Ship a local-first database (e.g., SQLite/IndexedDB with background replication, CRDT-friendly merges). Sync to Laravel when online.
+  - Impact: App runs fully offline for days; zero data loss in connectivity deserts.
+
+- SMS-first workflows
+  - Solution: Token/triage notifications, appointment reminders, follow-up prompts via SMS; simple USSD for basic actions.
+  - Impact: Reaches patients without smartphones; reduces no-shows and crowding.
+
+- Smart Consultation v2 (on-device)
+  - Solution: WASM ASR (Vosk/Whisper.cpp) and small on-device models for better offline STT and smarter, local analysis.
+  - Impact: Higher accuracy and reliability without internet; multilingual robustness.
+
+- Health-specialized Assistant (local RAG)
+  - Solution: Retrieval-augmented generation over clinic + national protocols, with guardrails; prefer local models when feasible.
+  - Impact: Faster, trustworthy guidance aligned to national standards; reduces cognitive load.
+
+- Portable Patient Record (QR/NFC card)
+  - Solution: Patient card with QR (and optional NFC) embedding a compact, signed summary or locator to fetch full data on consent.
+  - Impact: Continuity of care across clinics even without internet; helps referrals and return visits.
+
+- Multi-clinic (multi-tenant) with shared directory
+  - Solution: Tenant isolation by clinic, with a consented regional patient directory to discover/import records.
+  - Impact: Data follows the patient; clinics keep autonomy while enabling secure interoperability.
+
+- Queue hardware and kiosks
+  - Solution: Low-cost token dispensers/kiosks for check-in; visible wait-time boards.
+  - Impact: Smoother flow, less front-desk pressure, clearer expectations.
+
+- Outcomes & quality analytics
+  - Solution: Dashboards for throughput, wait times, triage distribution, follow-ups; SMS campaign effectiveness.
+  - Impact: Managers see bottlenecks and improvements; supports funding and oversight.
 
 ---
 
@@ -102,6 +121,7 @@ Key principles: offline-first, local data, transparency, simple UI patterns.
   - Loader: `Frontend/src/lib/references/loader.ts`
   - Retriever: `Frontend/src/lib/references/retriever.ts`
   - UI: `/dashboard/assistant` and `/dashboard/docs`
+  - Update intelligence: curate/add entries in `index.json` (topics, tags, citations). No external model needed.
 
 - Queue
   - API client: `Frontend/src/services/api.ts`
@@ -113,3 +133,21 @@ Key principles: offline-first, local data, transparency, simple UI patterns.
   - Backend: PHPUnit
 
 This document is intentionally concise (2–4 pages) to maximize clarity.
+
+---
+
+## Feature Briefs
+
+- Real-time Queue (how it’s built and impact)
+  - Built with Next.js UI + Laravel API. Status transitions and token assignment via `/api/v1/queue`.
+  - Impact: Clear flow and triage reduce confusion and shorten perceived waits; enables SMS updates.
+
+- Virtual Assistant (how it’s built and why “Assistant”)
+  - Built as a local keyword retriever over curated references with citation rendering; browsable docs UI.
+  - Why “Assistant”: it assists clinicians with fast, trustworthy, and local guidance, not a generic chatbot.
+  - Update intelligence by editing `Frontend/public/references/index.json`.
+
+- Smart Consultation (how it’s built and why “Smart”)
+  - Built with Web Speech API (STT), simple translation dictionaries, and rule-based smart analysis to extract key info.
+  - Why “Smart”: logic is explicit and local; provides structured suggestions without external AI services.
+  - To evolve, extend dictionaries and patterns; optional WASM modules can be added for offline STT later.

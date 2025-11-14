@@ -8,9 +8,10 @@ import {
   Profile2User,
   User,
   Health,
+  Bubble,
 } from "iconsax-react";
 import logo from "../assets/preclinic_logo.png";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 interface SidebarProps {
   isCollapsed: boolean;
@@ -25,6 +26,17 @@ export default function Sidebar({ isCollapsed, onToggle, onClose }: SidebarProps
   const menuItems = [
     { id: "Dashboard", label: "Dashboard", icon: Element3, path: "/dashboard" },
     { id: "Line Queue", label: "Line Queue", icon: Health, path: "/dashboard/queue" },
+    {
+      id: "VirtualAssistant",
+      label: "Virtual Assistant",
+      icon: Bubble,
+      path: "/dashboard/assistant",
+      hasChildren: true,
+      children: [
+        { label: "Ask Assistant", path: "/dashboard/assistant" },
+        { label: "Browse Assistant", path: "/dashboard/docs" },
+      ],
+    },
     {
       id: "Patients",
       label: "Patients",
@@ -50,9 +62,23 @@ export default function Sidebar({ isCollapsed, onToggle, onClose }: SidebarProps
   ];
 
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
+    VirtualAssistant: true,
     Patients: true,
     Doctors: false,
   });
+
+  // Prefetch main and child routes for smoother offline navigation
+  useEffect(() => {
+    try {
+      menuItems.forEach((item) => {
+        router.prefetch(item.path);
+        if (item.children) {
+          item.children.forEach((c: any) => router.prefetch(c.path));
+        }
+      });
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const toggleSection = (id: string) => {
     setOpenSections((prev) => ({ ...prev, [id]: !prev[id] }));

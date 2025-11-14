@@ -1,8 +1,10 @@
-name: Create Issue from PR
+name: Community Automation
 
 on:
   pull_request:
     types: [opened]
+  issues:
+    types: [labeled, unlabeled]
 
 permissions:
   issues: write
@@ -10,7 +12,8 @@ permissions:
   contents: read
 
 jobs:
-  create-issue:
+  create-issue-from-pr:
+    if: github.event_name == 'pull_request' && github.event.action == 'opened'
     runs-on: ubuntu-latest
     env:
       PROJECT_ID: ${{ secrets.PROJECT_ID }}
@@ -34,7 +37,6 @@ jobs:
               labels: ['triage']
             });
 
-            // Comment and update PR body with Related-Issue reference
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -50,7 +52,6 @@ jobs:
               body: newBody
             });
 
-            // Label the PR
             await github.rest.issues.addLabels({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -72,7 +73,6 @@ jobs:
               return;
             }
 
-            // Get node id for the issue
             const nodeQuery = await github.graphql(`
               query($owner:String!, $repo:String!, $number:Int!){
                 repository(owner:$owner, name:$repo){ issue(number:$number){ id } }
@@ -80,7 +80,6 @@ jobs:
             `, { owner: context.repo.owner, repo: context.repo.repo, number: issueNumber });
             const issueNodeId = nodeQuery.repository.issue.id;
 
-            // Add to Project V2
             const projectId = process.env.PROJECT_ID;
             await github.graphql(`
               mutation($projectId:ID!, $contentId:ID!){
@@ -90,3 +89,35 @@ jobs:
         env:
           PROJECT_ID: ${{ env.PROJECT_ID }}
           INPUT_ISSUE_NUMBER: ${{ steps.create.outputs.issue_number }}
+
+  sync-issue-labels-to-pr:
+    if: github.event_name == 'issues' && (github.event.action == 'labeled' || github.event.action == 'unlabeled')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const issue = context.payload.issue;
+            const label = context.payload.label;
+            const q = `repo:${context.repo.owner}/${context.repo.repo} "Related-Issue: #${issue.number}" in:body`;
+            const res = await github.rest.search.issuesAndPullRequests({ q });
+            for (const item of res.data.items) {
+              if (!item.pull_request) continue;
+              const prNumber = item.number;
+              if (context.payload.action === 'labeled') {
+                await github.rest.issues.addLabels({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: prNumber,
+                  labels: [label.name]
+                });
+              } else {
+                await github.rest.issues.removeLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: prNumber,
+                  name: label.name
+                }).catch(()=>{});
+              }
+            }

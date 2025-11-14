@@ -1,6 +1,6 @@
 # eClinic – Rural Healthcare Management System
 
-**eClinic** is an offline-first healthcare platform designed for rural clinics.  
+**eClinic** is a healthcare platform designed for rural clinics.  
 It improves patient flow, reduces nurse workload, and provides instant access to medical knowledge — even with poor connectivity.
 
 ---
@@ -8,10 +8,9 @@ It improves patient flow, reduces nurse workload, and provides instant access to
 ## Overview
 
 ### Core Features
-- Offline-first patient registration and consultation  
+- Form-level offline edits with background sync on reconnect  
 - **Virtual Assistant** (offline-first, local WHO + Rwanda manuals, citations, documentation browser)  
-- **AI-Powered Multilingual Consultation** (Speech-to-Text + Auto-Summarization)  
-- Automatic background synchronization when online  
+- **Smart Multilingual Consultation** (Speech-to-Text + Smart analysis)  
 - Real-time queue management and triage dashboard  
 - Consultation assistant with prefilled patient data  
 - Integrated micro-learning and clinical guidelines (Knowledge Hub)  
@@ -23,23 +22,19 @@ It improves patient flow, reduces nurse workload, and provides instant access to
 ## System Architecture
 
 ```
-Frontend (Next.js / RxDB)  ⇄  Backend (Laravel / REST API)
-       │                           │
-       │                           ├── PostgreSQL (relational data)
-       │                           ├── CouchDB (offline sync)
-       │                           └── Redis (cache / sessions)
-       └──────────── Docker Network ────────────────────────────────
+Frontend (Next.js)  ⇄  Backend (Laravel / REST API)
+       │                    │
+       │                    └── PostgreSQL (relational data)
+       └──────────── Docker Network ─────────────────────────
 ```
 
 **Frontend**
 - Next.js 14 (App Router), TypeScript, Tailwind CSS  
-- RxDB + IndexedDB for local storage  
-- CouchDB replication for multi-device offline sync  
+- Local storage/IndexedDB for caching and a lightweight form-level sync queue  
 
 **Backend**
 - Laravel 11 (API first, modular architecture)  
 - PostgreSQL 16 for persistence  
-- Redis 7 for caching and queue management  
 
 **Infrastructure**
 - Docker Compose orchestration  
@@ -64,11 +59,10 @@ docker-compose up -d --build
 When the setup completes, visit:
 - Frontend: http://localhost:3000  
 - Backend API: http://localhost:8000/api/v1  
-- CouchDB Admin: http://localhost:5984/_utils (admin/admin)
 
 **Run Tests**
 ```bash
-docker-compose exec backend php artisan test
+docker-compose exec backend-app php artisan test
 ```
 
 ---
@@ -77,7 +71,7 @@ docker-compose exec backend php artisan test
 
 ```
 eClinic/
-├── frontend/          # Next.js app (UI, RxDB, sync)
+├── frontend/          # Next.js app (UI, local cache + sync queue)
 ├── backend/           # Laravel API (controllers, services, tests)
 ├── docs/              # Architecture & CI/CD docs
 ├── docker-compose.yml
@@ -88,16 +82,27 @@ eClinic/
 
 ## Key Workflows
 
-### Offline Sync
-1. Data stored locally in RxDB (IndexedDB).  
-2. When internet returns, RxDB replicates with CouchDB.  
-3. CouchDB syncs changes to the backend (PostgreSQL).  
+### Form-level Offline Edits
+1. In any form (e.g., consultation), edits continue even if internet drops.  
+2. On Save/Action, data is stored locally and enqueued.  
+3. When internet returns, queued writes are sent to the API and the UI refreshes.  
 
 ### CI/CD
 - GitHub Actions runs tests on pull requests.  
 - Docker images built automatically.  
 - Deployment triggered on merge to `main`.  
 - Project management integration through GitHub Projects / Linear.  
+
+### Automation & Delivery
+- CI/CD Pipeline (`.github/workflows/ci-cd.yml`)
+  - On PRs: build and test Frontend (Node 18) and Backend (PHP 8.2 + Postgres service).
+  - On push to main: builds Frontend/Backend, runs tests; used by deployments.
+- Deploy on main (`.github/workflows/deploy.yml`)
+  - On push to main: logs into Docker registry and builds/pushes images for Frontend and Backend.
+  - SSH deployment block is scaffolded and can be re-enabled to roll out to a server.
+- Community Automation (`.github/workflows/automation.yml`)
+  - On PR open: creates a linked GitHub Issue, annotates the PR, optionally adds to a Project (requires PAT).
+  - On issue label changes: syncs labels to related PRs that reference the issue.
 
 ---
 
@@ -124,8 +129,6 @@ curl http://localhost:8000/api/v1/patients
 **Frontend (.env.local)**  
 ```
 NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
-NEXT_PUBLIC_COUCHDB_URL=http://localhost:5984
-NEXT_PUBLIC_COUCHDB_DB_NAME=eclinic
 ```
 
 **Backend (.env)**  
@@ -135,7 +138,6 @@ DB_HOST=postgres
 DB_DATABASE=eclinic
 DB_USERNAME=postgres
 DB_PASSWORD=postgres
-REDIS_HOST=redis
 ```
 
 ---
@@ -161,6 +163,56 @@ docker-compose restart frontend
 
 ---
 
+## Offline Strategy
+
+We support form-level offline editing and saving for critical workflows.
+
+- Service Worker: caches the app shell and static assets for smooth navigation.
+- Local Storage/IndexedDB: cache reads and store pending writes.
+- Sync Queue: when offline, saves are enqueued and retried on reconnect.
+- Optimistic UI: reflect local changes immediately, then reconcile on sync.
+
+### Data Flow
+
+Read operations
+- Serve from local cache first, then validate/refresh with network when available.
+
+Write operations
+- Save locally with status=pending and enqueue the request for background sync.
+- When back online, the queue flushes and updates the server.
+
+Conflict resolution
+- Prefer timestamp-based resolution; fall back to manual merge where needed.
+
+Backend strategy
+- Provide idempotent sync endpoints for batch operations (create/update).
+- Detect conflicts via updated_at/version and return details for merge.
+
+### Files
+
+- Public Service Worker: `Frontend/public/sw.js` (network-first for API; cache-first for assets)
+- SW registration and offline banner: `Frontend/src/components/ServiceWorkerProvider.tsx` and wired in `Frontend/src/app/layout.tsx`
+- Minimal sync queue utility: `Frontend/src/lib/offline/syncQueue.ts`
+
+### How to use
+
+- The service worker auto-registers on first load (in supported browsers).
+- To enqueue a write when offline:
+  ```ts
+  import { enqueue, flushQueue } from '@/lib/offline/syncQueue';
+  enqueue('http://localhost:8000/api/v1/patients', { method: 'POST', body: JSON.stringify({ ... }) });
+  // Later, when back online
+  await flushQueue();
+  ```
+
+### Test offline
+
+- Open DevTools → Network → Offline; navigate the app and perform actions.
+- Note the yellow banner indicating offline mode.
+- Go back online; the queue flushes automatically.
+
+---
+
 ## Testing & Quality
 
 - Backend: PHPUnit feature + unit tests  
@@ -175,7 +227,7 @@ docker-compose restart frontend
   ```
 - Backend
   ```bash
-  docker-compose exec backend php artisan test
+  docker-compose exec backend-app php artisan test
   ```
 
 Unit tests cover queue duplicate prevention, SearchDropdown modal actions and closing behavior, and API contract basics.
@@ -184,14 +236,19 @@ Unit tests cover queue duplicate prevention, SearchDropdown modal actions and cl
 
 ## Virtual Assistant
 
-The Virtual Assistant helps clinicians quickly find answers from trusted local sources and works fully offline.
+The Virtual Assistant helps clinicians quickly find answers from trusted local sources and works offline.
 
 - Data source: local JSON at `Frontend/public/references/index.json`
 - Sources: WHO clinical guidelines and Rwandan health manuals
-- Features: keyword search, answer synthesis from retrieved chunks, citations, and a documentation browser at `/dashboard/docs`
-- Access: via Topbar "Virtual Assistant" button or `/dashboard/assistant`
+- Features: keyword search, synthesized answers with citations, documentation browser at `/dashboard/docs`
+- Access: via Topbar "Virtual Assistant" or `/dashboard/assistant`
 
-See the in-app Documentation page or the repository documentation below.
+How it’s built (brief):
+- Keyword retriever over local JSON references, client-side rendering of citations and docs.
+- No external model is required; runs fully in the browser.
+
+How to update its “intelligence”:
+- Edit `Frontend/public/references/index.json` (add/curate entries, tags, and content). Changes are picked up on refresh.
 
 ### Learn more
 - Documentation: [DOCUMENTATION.md](./DOCUMENTATION.md)
@@ -221,15 +278,18 @@ To update the docs, edit `backend/public/api-docs/openapi.json` and refresh the 
 
 - **Problem 1: The Waiting Room Crisis**
   - Reality: 100–150 patients/day, 2–3 nurses, 4–6h waits, no visibility/triage.
-  - Solution: Real-time queue with triage, tokens, and patient status visibility; SMS updates.
+  - Solution: Real-time queue with triage, tokens, patient status, and optional SMS.
+  - Impact: Reduces uncertainty and walkaways; surfaces urgent cases; shortens perceived wait times.
 
 - **Problem 2: The Consultation Overload**
   - Reality: Repeated questions, fragmented history, heavy admin burden, connectivity drops.
-  - Solution: Multilingual speech capture + local summarization; prefilled patient context; offline-first storage and sync.
+  - Solution: Multilingual speech capture + smart analysis; prefilled patient context; form-level offline queue for saves.
+  - Impact: Less typing, faster documentation, fewer errors, continues working during connectivity blips.
 
 - **Problem 3: The Knowledge Gap**
-  - Reality: Limited training, protocols, specialist access; need quick, trustworthy answers offline.
-  - Solution: Virtual Assistant answers strictly from local WHO/Rwanda references with citations; browsable documentation.
+  - Reality: Limited protocols/specialists; need quick, trustworthy guidance offline.
+  - Solution: Virtual Assistant uses curated local references with citations and browsable docs.
+  - Impact: Faster, more consistent decisions; confidence for nurses and clinicians.
 
 ## Smart Consultation Feature
 
@@ -255,7 +315,7 @@ The consultation feature uses **browser-native speech recognition** combined wit
 - **Storage**: Each speech segment stored with original language metadata
 - **Example**: `"j'ai mal à la tête"` → `"I have head pain"`
 
-#### 3. **AI Summarization**
+#### 3. **Smart analysis**
 - **Type**: Rule-based pattern matching (runs locally, no server needed)
 - **Extracts**:
   - **Symptoms**: Searches for medical keywords (pain, fever, cough, headache, etc.)
@@ -278,18 +338,25 @@ The consultation feature uses **browser-native speech recognition** combined wit
 - **Output**: Print-ready PDF via browser's print dialog
 - **Process**: 5-second loader → auto-scroll to report → print/download
 
-### Technical Stack
+### Technical Stack (Smart Consultation)
 ```
 Web Speech API → Transcript Segments (with language)
                         ↓
                  Translation Dictionary
                         ↓
-                 AI Summarizer (local)
+                 Smart Analysis (local)
                         ↓
               Editable Summary Fields
                         ↓
                  Report Generator → PDF
 ```
+
+How it’s built (brief):
+- Web Speech API for STT, local translation dictionaries, and rule-based smart analysis.
+- No external AI service is required; everything runs in-browser.
+
+How to update its “intelligence”:
+- Extend translation dictionaries and keyword patterns in the code to improve detection and suggestions.
 
 ### Usage Example
 1. Navigate to patient detail → "New appointment" tab
