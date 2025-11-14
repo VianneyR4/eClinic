@@ -15,6 +15,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [debugCode, setDebugCode] = useState<string | null>(null); // TEST ONLY: shown when API provides debug_verification_code
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,6 +35,10 @@ export default function LoginPage() {
         if (response.requires_verification) {
           setShowVerification(true);
           setSuccess("Verification code sent. Please check your email to continue.");
+          if (response.debug_verification_code) {
+            // NOTE: This code is displayed only in local/testing to help QA. Do not show in production.
+            setDebugCode(response.debug_verification_code);
+          }
         } else {
           setError(response.message || "Login failed. Please check your credentials.");
         }
@@ -46,6 +51,10 @@ export default function LoginPage() {
       if (err.response?.data?.requires_verification) {
         setShowVerification(true);
         setSuccess("Verification code sent to your email. Please check your inbox.");
+        if (err.response?.data?.debug_verification_code) {
+          // NOTE: This code is displayed only in local/testing to help QA. Do not show in production.
+          setDebugCode(err.response.data.debug_verification_code);
+        }
       }
     } finally {
       setIsLoading(false);
@@ -90,6 +99,10 @@ export default function LoginPage() {
       const response = await apiService.resendVerificationCode(email);
       if (response.success) {
         setSuccess("Verification code resent to your email.");
+        if (response.debug_verification_code) {
+          // NOTE: This code is displayed only in local/testing to help QA. Do not show in production.
+          setDebugCode(response.debug_verification_code);
+        }
       } else {
         setError(response.message || "Failed to resend verification code.");
       }

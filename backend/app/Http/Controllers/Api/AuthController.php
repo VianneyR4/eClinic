@@ -58,12 +58,19 @@ class AuthController extends Controller
                     Log::error('Error sending verification email: ' . $e->getMessage());
                 }
 
-                return response()->json([
+                $payload = [
                     'success' => false,
                     'message' => 'Verification code sent. Please check your email to continue.',
                     'requires_verification' => true,
                     'type' => 'user',
-                ], 403);
+                ];
+
+                // Expose code in non-production environments to aid testing
+                if (app()->environment(['local', 'testing']) || filter_var(env('SHOW_VERIFICATION_CODE', false), FILTER_VALIDATE_BOOLEAN)) {
+                    $payload['debug_verification_code'] = $code; // NOTE: UI should show this only in test/dev
+                }
+
+                return response()->json($payload, 403);
             }
 
             // Try login as Doctor (password-only)
@@ -274,10 +281,14 @@ class AuthController extends Controller
                 ], 500);
             }
 
-            return response()->json([
+            $payload = [
                 'success' => true,
                 'message' => 'Verification code sent successfully.',
-            ]);
+            ];
+            if (app()->environment(['local', 'testing']) || filter_var(env('SHOW_VERIFICATION_CODE', false), FILTER_VALIDATE_BOOLEAN)) {
+                $payload['debug_verification_code'] = $code; // NOTE: UI should show this only in test/dev
+            }
+            return response()->json($payload);
         } catch (\Exception $e) {
             Log::error('Resend verification code error: ' . $e->getMessage());
 
