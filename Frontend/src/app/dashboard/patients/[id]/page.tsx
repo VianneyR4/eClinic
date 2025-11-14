@@ -1,6 +1,8 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import { enqueue } from "@/lib/offline/syncQueue";
+import { API_BASE_URL } from "@/services/api";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { getVitalSignColor, formatVitalSignValue } from "@/utils/vitalSigns";
@@ -105,16 +107,21 @@ export default function PatientDetailPage() {
   const [detailItem, setDetailItem] = useState<any | null>(null);
 
   const loadConsultations = async () => {
+      const cacheKey = `eclinic_cache_consultations_${patientId}`;
       try {
         setLoadingConsults(true);
         const res = await apiService.getPatientConsultations(patientId);
         if (res?.success) {
-          setConsultations(res.data || []);
+          const list = res.data || [];
+          setConsultations(list);
+          try { localStorage.setItem(cacheKey, JSON.stringify(list)); } catch {}
         } else {
-          setConsultations([]);
+          const cached = typeof window !== 'undefined' ? localStorage.getItem(cacheKey) : null;
+          setConsultations(cached ? JSON.parse(cached) : []);
         }
       } catch {
-        setConsultations([]);
+        const cached = typeof window !== 'undefined' ? localStorage.getItem(cacheKey) : null;
+        setConsultations(cached ? JSON.parse(cached) : []);
       } finally {
         setLoadingConsults(false);
       }
@@ -735,7 +742,7 @@ function ConsultationDetailModal({ detailItem, patient, patientRaw, onClose }: {
               </div>
               <div>For inquiries: TrustCare Clinic – +250 788 000 000</div>
               <div className="text-gray-400">
-                  © {new Date().getFullYear()} eClinic. All rights reserved.
+                  &copy; {new Date().getFullYear()} eClinic. All rights reserved.
               </div>
               </div>
           </div>
@@ -1040,6 +1047,7 @@ function NewAppointmentDesign({ patientId, onSaved }: { patientId: string; onSav
   const [saving, setSaving] = useState(false);
   const [showReport, setShowReport] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [pendingSync, setPendingSync] = useState(false);
 
   const [recognitionRef] = useState<{ rec: any | null }>({ rec: null });
   const [debounceTimer, setDebounceTimer] = useState<any>(null);
@@ -1100,7 +1108,11 @@ function NewAppointmentDesign({ patientId, onSaved }: { patientId: string; onSav
         }, 100);
       }
     };
-    rec.onerror = () => {};
+    rec.onerror = (e: any) => {
+      setRecording(false);
+      try { rec.stop(); } catch {}
+      alert(`Microphone or speech recognition error${e?.error ? `: ${e.error}` : ''}. Please check browser permissions and try again.`);
+    };
     rec.onend = () => {
       if (recording) {
         try { rec.start(); } catch {}
@@ -1122,7 +1134,9 @@ function NewAppointmentDesign({ patientId, onSaved }: { patientId: string; onSav
       setAnalyser(an);
       setSource(src);
       drawWaveform(an);
-    } catch {}
+    } catch (err) {
+      alert('Microphone permission is required for speech-to-text. Please allow access and try again.');
+    }
   };
 
   const stopRecognition = () => {
@@ -1256,7 +1270,7 @@ function NewAppointmentDesign({ patientId, onSaved }: { patientId: string; onSav
     if (foundSymptoms.length > 0) setSymptoms(foundSymptoms.join(", "));
   
     /** ⏱ Step 4: Extract Duration **/
-    // Match patterns like “5 days”, “five days”, “cinq jours”, “3 semaines”, etc.
+    // Match patterns like “5 days”, “five days”, “cinq jours”, etc.
     const durMatch = t.match(
       /(\d+)\s*(day|days|week|weeks|month|months|hour|hours|year|years|jour|jours|semaine|semaines|mois|an|ans)/i
     );
@@ -1386,7 +1400,6 @@ function NewAppointmentDesign({ patientId, onSaved }: { patientId: string; onSav
     try {
       // optional: brief UX delay
       await new Promise((r) => setTimeout(r, 800));
-      // Build a concise report from transcript and summary data
       const parts: string[] = [];
       if (transcript) parts.push(`Transcript:\n${transcript}`);
       if (symptoms) parts.push(`Symptoms: ${symptoms}`);
@@ -1401,23 +1414,60 @@ function NewAppointmentDesign({ patientId, onSaved }: { patientId: string; onSav
         title: diagnosis || 'Consultation',
         report: reportText || 'N/A',
       };
-      // Save consultation
-      const res = await apiService.createConsultation(payload);
-      if (res?.success) {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+      const url = `${API_BASE_URL}/v1/consultations`;
+
+      if (!navigator.onLine) {
+        enqueue(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify(payload),
+        });
+        setPendingSync(true);
         setShowReport(true);
         onSaved && onSaved();
-        // Auto-scroll to report
         setTimeout(() => {
           const reportEl = document.getElementById('consultation-report');
-          if (reportEl) {
-            reportEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          }
+          if (reportEl) reportEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }, 100);
-      } else {
-        alert(res?.message || 'Failed to save consultation');
+        return;
+      }
+
+      try {
+        const res = await apiService.createConsultation(payload);
+        if (res?.success) {
+          setPendingSync(false);
+          setShowReport(true);
+          onSaved && onSaved();
+          setTimeout(() => {
+            const reportEl = document.getElementById('consultation-report');
+            if (reportEl) reportEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }, 100);
+        } else {
+          throw new Error(res?.message || 'Failed to save consultation');
+        }
+      } catch (err) {
+        enqueue(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify(payload),
+        });
+        setPendingSync(true);
+        setShowReport(true);
+        onSaved && onSaved();
+        setTimeout(() => {
+          const reportEl = document.getElementById('consultation-report');
+          if (reportEl) reportEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
       }
     } catch (e: any) {
-      alert(e?.message || 'Failed to save consultation');
+      alert(e?.message || 'Could not generate report');
     } finally {
       setGenerating(false);
     }

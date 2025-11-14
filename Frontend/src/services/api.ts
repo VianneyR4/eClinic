@@ -15,7 +15,7 @@ const getApiBaseUrl = () => {
   return url;
 };
 
-const API_BASE_URL = getApiBaseUrl();
+export const API_BASE_URL = getApiBaseUrl();
 
 class ApiService {
   private client: AxiosInstance;
