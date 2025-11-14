@@ -14,20 +14,20 @@ class AdminSeeder extends Seeder
     public function run(): void
     {
         $admin = User::firstOrCreate(
-            ['email' => 'admin@gmail.com'],
+            ['email' => 'doctor@gmail.com'],
             [
-                'name' => 'Admin User',
-                'password' => Hash::make('admin123456'),
+                'name' => 'Doctor Admin',
+                'password' => Hash::make('123456'),
                 'email_verified_at' => null,
             ]
         );
 
         if ($admin->wasRecentlyCreated) {
-            $this->command->info('Admin user created successfully!');
-            $this->command->info('Email: admin@gmail.com');
-            $this->command->info('Password: admin123456');
+            $this->command->info('Doctor Admin created successfully!');
+            $this->command->info('Email: doctor@gmail.com');
+            $this->command->info('Password: 123456');
         } else {
-            $this->command->info('Admin user already exists.');
+            $this->command->info('Doctor Admin already exists.');
         }
     }
 }

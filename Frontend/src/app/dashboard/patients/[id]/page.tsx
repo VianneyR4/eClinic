@@ -207,6 +207,8 @@ export default function PatientDetailPage() {
             </button>
           </div>
         </div>
+
+        
       </div>
 
         {/* Two side by side cards */}
@@ -289,8 +291,7 @@ export default function PatientDetailPage() {
           </div>
         </div>
 
-
-
+        
       {/* Switch Tabs */}
       <div className="">
         <div className="px-4 pt-3">
@@ -368,6 +369,7 @@ function ConsultationDetailModal({ detailItem, patient, patientRaw, onClose }: {
   const [showEmailDropdown, setShowEmailDropdown] = useState(false);
   const [emailAddress, setEmailAddress] = useState(patient.email || '');
   const [sendingEmail, setSendingEmail] = useState(false);
+  const [notice, setNotice] = useState<{ open: boolean; type: 'success' | 'error'; message: string }>({ open: false, type: 'success', message: '' });
 
   const doctorName = detailItem?.doctor 
     ? `${detailItem.doctor.first_name || ''} ${detailItem.doctor.last_name || ''}`.trim() || detailItem.doctor.name || `#${detailItem.doctor_id || 'N/A'}`
@@ -400,16 +402,22 @@ function ConsultationDetailModal({ detailItem, patient, patientRaw, onClose }: {
 
   const handleSendEmail = async () => {
     if (!emailAddress) {
-      alert('Please enter an email address');
+      setNotice({ open: true, type: 'error', message: 'Please enter an email address.' });
       return;
     }
     setSendingEmail(true);
     try {
-      // TODO: Implement email sending API call
-      alert(`In the future, consultation details will be sent to ${emailAddress} via email. SMS functionality will also be available.`);
-      setShowEmailDropdown(false);
-    } catch (error) {
-      alert('Failed to send email. Please try again.');
+      const html = generateReportHtml();
+      const res = await apiService.emailConsultationReport(detailItem?.id, emailAddress, html);
+      if (res?.success) {
+        setNotice({ open: true, type: 'success', message: 'Report sent successfully.' });
+        setShowEmailDropdown(false);
+      } else {
+        setNotice({ open: true, type: 'error', message: res?.message || 'Failed to send email. Please try again.' });
+      }
+    } catch (error: any) {
+      const msg = error?.response?.data?.message || 'Failed to send email. Please try again.';
+      setNotice({ open: true, type: 'error', message: msg });
     } finally {
       setSendingEmail(false);
     }

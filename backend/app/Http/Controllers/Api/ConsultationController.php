@@ -9,6 +9,7 @@ use App\Models\Patient;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use PHPOpenSourceSaver\JWTAuth\Facades\JWTAuth;
 
 class ConsultationController extends Controller
@@ -126,6 +127,66 @@ class ConsultationController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to fetch consultation.',
+            ], 500);
+        }
+    }
+
+    /**
+     * Email a consultation report (HTML) to a provided address.
+     */
+    public function emailReport(Request $request, int $id): JsonResponse
+    {
+        try {
+            $principal = JWTAuth::parseToken()->authenticate();
+            if (!$principal || !($principal instanceof User)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized.',
+                ], 401);
+            }
+
+            $validated = $request->validate([
+                'email' => 'required|email',
+                'html' => 'required|string',
+            ]);
+
+            $consultation = Consultation::with(['patient', 'doctor'])->find($id);
+            if (!$consultation) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Consultation not found.',
+                ], 404);
+            }
+
+            // Send HTML email (simple inline body)
+            try {
+                $subject = 'Consultation Report #'.$consultation->id.' - eClinic';
+                Mail::html($validated['html'], function($m) use ($validated, $subject) {
+                    $m->to($validated['email'])->subject($subject);
+                });
+            } catch (\Throwable $e) {
+                Log::error('Error sending consultation report email: '.$e->getMessage());
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to send email. Please try again later.',
+                ], 500);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Consultation report sent successfully.',
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed.',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error('Email report error: '.$e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while sending the email.',
             ], 500);
         }
     }
